@@ -1,0 +1,24 @@
+{
+  "name": "rdf-graph",
+  "version": "1.0.0",
+  "description": "Visualisation tool for rdf data representing versioned graphs",
+  "main": "public/index.js",
+  "scripts": {
+    "start": "supervisor public/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:prod": ""
+  },
+  "keywords": [
+    "visualisation",
+    "rdf",
+    "graph"
+  ],
+  "author": "Leonardo Mieschendahl",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "supervisor": "^0.12.0"
+  }
+}
