@@ -73,13 +73,13 @@ let CONTROL = (global) => {
         p5.loadImage('assets/reload.png', img => {
             reset_icon = new ResetIcon(img, Vec(10, 10), 1 / 2.5, 17);
         });
-        p5.loadImage('assets/edit.png', img => {
+        /* p5.loadImage('assets/edit.png', img => {
             edit_icon = new EditIcon(img, Vec(10, 10), 1 / 3, 20, versioning);
-        });
-        p5.loadImage('assets/question.png', img => {
-            // help_icon = new HelpIcon(img, Vec(10, 10), 1 / 3, 18, versioning);
-        });
-        let otherLoadedIcon = undefined;
+        }); */
+        /* p5.loadImage('assets/question.png', img => {
+            help_icon = new HelpIcon(img, Vec(10, 10), 1 / 3, 18, versioning);
+        }); */
+        /*let otherLoadedIcon = undefined;
         const glassIcon = (loadedIcon, isChecked) => {
             if (otherLoadedIcon === undefined) {
                 otherLoadedIcon = loadedIcon;
@@ -96,7 +96,7 @@ let CONTROL = (global) => {
         });
         p5.loadImage('assets/glass_checked.png', checked => {
             glassIcon(checked, true);
-        });
+        });*/
     }
 
     function isIn(el, ls) {
@@ -149,7 +149,7 @@ let CONTROL = (global) => {
         } else if (touching_edges.length > 0) {
             if (newest && isIn(event.button, controls.move_edge)) {
                 edge = edges[touching_edges[touching_edges.length - 1]];
-                const vec = edge.endpoints();
+                const vec = edge.getBorderPoints();
                 originalEdge = { ...edge, selected: false };
                 const relativeMouse = mouse.minus(viewpoint[0]);
                 if (relativeMouse.minus(vec[0]).distance() < relativeMouse.minus(vec[1]).distance()) {
@@ -214,13 +214,9 @@ let CONTROL = (global) => {
             if (holding === undefined) {
                 if (edge === undefined) {
                     if (touching_versions.length > 0) {
-                        if (isIn(event.button, controls.toggle_approval)) {
-                            const version = versions[touching_versions[touching_versions.length - 1]];
-                            version.graph.toggle_approval()
-                        } else if (isIn(event.button, controls.jump_graph)) {
+                        if (isIn(event.button, controls.jump_graph)) {
                             const version = versions[touching_versions[touching_versions.length - 1]];
                             versioning.selected = version.graph;
-                            versioning.resizeTimeline();
                         }
                     } else if (reset_icon !== undefined && reset_icon.touches(mouse)) {
                         if (isIn(event.button, controls.press_button)) {
@@ -448,22 +444,26 @@ let CONTROL = (global) => {
             p5.resizeCanvas(p5.windowWidth, p5.windowHeight);
         }
         p5.background(230, 230, 231);
-        p5.push();
-        p5.translate(viewpoint[0].x, viewpoint[0].y);
-        if (edge !== undefined && originalEdge === undefined) {
-            edge.draw();
-        }
-        p5.pop();
+
         versioning.resize();
         versioning.update();
         versioning.draw();
+
+        p5.push();
+        p5.translate(viewpoint[0].x, viewpoint[0].y);
+        if (edge !== undefined && originalEdge === undefined) {
+            edge.draw({});
+            edge.draw({}, true);
+        }
+        p5.pop();
+
         if (reset_icon !== undefined) {
             reset_icon.draw();
         }
         if (edit_icon !== undefined && versioning.selected.successors.length === 0) {
             edit_icon.draw();
         }
-        if (false && help_icon !== undefined) {
+        if (help_icon !== undefined) {
             help_icon.draw();
         }
         if (glass_icon !== undefined) {

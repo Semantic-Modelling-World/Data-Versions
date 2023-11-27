@@ -17,6 +17,10 @@ const UTILS = (global) => {
       return Vec(this.x - vector.x, this.y - vector.y);
     }
 
+    multi(vector) {
+      return Vec(this.x * vector.x, this.y * vector.y);
+    }
+
     times(number) {
       return Vec(this.x * number, this.y * number);
     }
@@ -52,6 +56,19 @@ const UTILS = (global) => {
     return new Vector(x, y);
   }
   global.Vec = Vec;
+
+  class TwoD {
+    static triangleArea(p1, p2, p3) {
+      return Math.abs((p2.x * p1.y - p1.x * p2.y) + (p3.x * p2.y - p2.x * p3.y) + (p1.x * p3.y - p3.x * p1.y)) / 2;
+    }
+
+    static pointIntersectRect(point, p1, p2, p3, p4) {
+        const rectArea = p1.minus(p2).distance() * p1.minus(p3).distance();
+        const triArea = TwoD.triangleArea(p1, point, p4) + TwoD.triangleArea(p4, point, p3) + TwoD.triangleArea(p3, point, p2) + TwoD.triangleArea(point, p2, p1);
+        return triArea <= rectArea;
+    }
+  }
+  global.TwoD = TwoD;
 
   const COLORS = {
     "darkBlue": [0, 61, 112],

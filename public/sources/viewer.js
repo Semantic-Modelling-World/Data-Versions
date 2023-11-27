@@ -3,8 +3,6 @@ const VIEWER = (global) => {
     const COLORS = global.COLORS;
     const PREDECESSOR = "core:predecessor";
     const HASSTATE = "lcm:hasState";
-    const APPROVAL = "lcm:Approval";
-    const INPROGRESS = "lcm:InProgress";
     const LABEL = "rdf:label";
     const EDGESTART = "core:start";
     const EDGELABEL = "rdf:label";
@@ -356,25 +354,12 @@ const VIEWER = (global) => {
         static parse(graph) {
             const entries = [];
 
-            if (graph.predecessor !== undefined) {
-                entries.push([":" + graph.id, PREDECESSOR, ":" + graph.predecessor.id]);
-            }
-            entries.push([":" + graph.id, HASSTATE, () => graph.approval ? APPROVAL : INPROGRESS])
-
             for (let i = 0; i < graph.nodes.length; i++) {
                 const node = graph.nodes[i];
-                if (node.predecessor !== undefined) {
-                    entries.push([":" + node.id, PREDECESSOR, ":" + node.predecessor.id]);
-                    entries.push([":" + node.id, LABEL, "\"" + node.label + "\"@en"]);
-                } else {
-                    entries.push([":" + node.id, LABEL, "\"" + node.label + "\"@en"]);
-                }
+                entries.push([":" + node.id, LABEL, "\"" + node.label + "\"@en"]);
             }
             for (let i = 0; i < graph.edges.length; i++) {
                 const edge = graph.edges[i];
-                if (edge.predecessor !== undefined) {
-                    entries.push([":" + edge.id, PREDECESSOR, ":" + edge.predecessor.id]);
-                }
                 entries.push([":" + edge.id, EDGESTART, ":" + edge.start.id]);
                 entries.push([":" + edge.id, EDGELABEL, edge.label]);
                 entries.push([":" + edge.id, EDGEEND, ":" + edge.end.id]);

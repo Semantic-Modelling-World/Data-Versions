@@ -1,6 +1,7 @@
 const GRAPH = (global) => {
     const p5 = global.p5;
     const Vec = global.Vec;
+    const TwoD = global.TwoD;
     const COLORS = global.COLORS;
     const ALPHA = global.ALPHA;
     const alpha = [255];
@@ -26,25 +27,32 @@ const GRAPH = (global) => {
     }
 
     class Node extends Id {
-        constructor(predecessor, id, label, pos, r = 45) {
+        constructor(predecessor, id, label, pos, width = 100, height = 45) {
             super(predecessor, id);
             this.label = label;
-            this.r = r;
+            this.width = width;  // half width
+            this.height = height;
             this.setPos(pos);
             this.textWidth = 15;
             this.selected = false;
             this.editing = -1;
             this.strokeWeight = 3;
+            this.rounding = 10;
             this.time_offset = Date.now();
         }
 
         setPos(pos) {
-           this.pos = pos.minus(viewpoint[0]);
+            this.pos = pos.minus(viewpoint[0]);
         }
 
-        touches(pos) {
-            pos = pos.minus(viewpoint[0]);
-            return this.pos.minus(pos).distance() <= this.r;
+        touches(point) {
+            point = point.minus(viewpoint[0]);
+            const p1 = this.pos.plus(Vec(-this.width, -this.height));
+            const p2 = this.pos.plus(Vec(this.width, -this.height));
+            const p3 = this.pos.plus(Vec(-this.width, this.height));
+            const p4 = this.pos.plus(Vec(this.width, this.height));
+            const res = TwoD.pointIntersectRect(point, p1, p2, p3, p4);
+            return res;
         }
 
         draw() {
@@ -55,7 +63,8 @@ const GRAPH = (global) => {
             }
             p5.fill(ALPHA(COLORS["lightBlue"], alpha[0]));
             p5.strokeWeight(this.strokeWeight);
-            p5.ellipse(this.pos.x, this.pos.y, this.r * 2, this.r * 2);
+            p5.rect(this.pos.x - this.width, this.pos.y - this.height, this.width * 2, this.height * 2, this.rounding);
+
 
             p5.noStroke();
             p5.textSize(this.textWidth);
@@ -68,9 +77,9 @@ const GRAPH = (global) => {
             p5.strokeWeight(2);
             if (this.editing > -1 && (Date.now() - this.time_offset) % 1000 < 500) {
                 p5.line(this.pos.x - fullTextWidth / 2 + textWidth,
-                this.pos.y + this.textWidth / 2,
-                this.pos.x - fullTextWidth / 2 + textWidth,
-                this.pos.y - this.textWidth / 2)
+                    this.pos.y + this.textWidth / 2,
+                    this.pos.x - fullTextWidth / 2 + textWidth,
+                    this.pos.y - this.textWidth / 2)
             }
         }
     }
@@ -92,99 +101,103 @@ const GRAPH = (global) => {
             this.time_offset = Date.now();
         }
 
-        area(p1, p2, p3) {
-            return Math.abs((p2.x * p1.y - p1.x * p2.y) + (p3.x * p2.y - p2.x * p3.y) + (p1.x * p3.y - p3.x * p1.y)) / 2;
-        }
 
-        endpoints() {
-            const startVec = this.start.pos;
-            const endVec = this.end.pos;
-            const diff = startVec.minus(endVec);
-            if (diff.distance() <= this.start.r + this.end.r) {
-                return [this.start.pos, this.end.pos];
+        touches(point, bidirectional) {
+            point = point.minus(viewpoint[0]);
+            const [startBorder, endBorder, distance] = this.getBorderPoints();
+            if (distance <= 0) {
+                return false;
             }
-            const normdiff = diff.normalized();
-            const top = endVec.plus(normdiff.times(this.end.r));
-            const bottom = startVec.plus(normdiff.times(-this.start.r));
-            return [bottom, top];
-        }
 
-        touches(pos, bidirectional) {
-            pos = pos.minus(viewpoint[0]);
-            const startVec = this.start.pos;
-            const endVec = this.end.pos;
-            const diff = startVec.minus(endVec);
-            const normdiff = diff.normalized();
-            const top = endVec.plus(normdiff.times(this.end.r - 1));
-            const bottom = startVec.minus(normdiff.times(this.start.r - 1));
-            const width = this.triangle_width;
-            const orthodiff = diff.orthogonal().normalized();
-            let p2 = undefined;
-            let p4 = undefined;
             const b = bidirectional[this.start.id + this.end.id];
+            const diff = endBorder.minus(startBorder);
+            const orthodiff = diff.orthogonal().normalized();
+
+            let p1 = undefined;
+            let p2 = undefined;
+            let p3 = undefined;
+            let p4 = undefined;
+            const width = this.triangle_width;
             if (b !== undefined && b.length > 1) {
-                p2 = bottom;
-                p4 = top;
+                p1 = startBorder.plus(orthodiff.times(width * 1.2));
+                p2 = startBorder;
+                p3 = endBorder.plus(orthodiff.times(width * 1.2));
+                p4 = endBorder;
             } else {
-                p2 = bottom.plus(orthodiff.times(width * 1.2));
-                p4 = top.plus(orthodiff.times(width * 1.2));
+                p1 = startBorder.plus(orthodiff.times(width * 1.2));
+                p2 = startBorder.plus(orthodiff.times(width * -1.2));
+                p3 = endBorder.plus(orthodiff.times(width * 1.2));
+                p4 = endBorder.plus(orthodiff.times(width * -1.2));
             }
-            const p1 = bottom.plus(orthodiff.times(-width * 1.2));
-            const p3 = top.plus(orthodiff.times(-width * 1.2));
-            const rectArea = p1.minus(p2).distance() * p1.minus(p3).distance();
-            const triArea = this.area(p1, pos, p4) + this.area(p4, pos, p3) + this.area(p3, pos, p2) + this.area(pos, p2, p1);
-            return triArea <= rectArea;
+
+            return TwoD.pointIntersectRect(point, p1, p2, p3, p4);
         }
 
-        draw(bidirectional = {}) {
-            const startVec = this.start.pos;
-            const endVec = this.end.pos;
-            const diff = startVec.minus(endVec);
-            if (diff.distance() <= this.start.r + this.end.r) {
+        getBorderPoint(start, end) {
+            const diff = end.pos.minus(start.pos);
+            if (diff.x === 0 && diff.y === 0) {
+                return undefined;
+            } else if (diff.x === 0) {
+                return start.pos.plus(Vec(0, start.height * Math.sign(diff.y)));
+            } else if (diff.y === 0) {
+                return start.pos.plus(Vec(start.width * Math.sign(diff.x), 0));
+            }
+            const relative = Vec(diff.x * start.height, diff.y * start.width);
+            let offset = undefined;
+            const size = Vec(start.width, start.height);
+            if (Math.abs(relative.y / relative.x) <= 1) {
+                offset = size.multi(Vec(Math.sign(relative.x), relative.y / Math.abs(relative.x)));
+            } else {
+                offset = size.multi(Vec(relative.x / Math.abs(relative.y), Math.sign(relative.y)));
+            }
+            return start.pos.plus(offset);
+        }
+
+        getBorderPoints() {
+            const start = this.getBorderPoint(this.start, this.end);
+            const end = this.getBorderPoint(this.end, this.start);
+            if (start === undefined || end === undefined || end.minus(this.start.pos).distance() <= start.minus(this.start.pos).distance()) {
+                return [undefined, undefined, 0];
+            }
+            return [start, end, end.minus(start).distance()];
+        }
+
+        draw(bidirectional, head = false) {
+            const [startBorder, endBorder, distance] = this.getBorderPoints();
+            if (distance <= 0) {
                 return;
             }
+            const diff = endBorder.minus(startBorder);
             const normdiff = diff.normalized();
-            const top = endVec.plus(normdiff.times(this.end.r));
             const height = this.triangle_height;
             const width = this.triangle_width;
-            const bottom = top.plus(normdiff.times(height));
-            const orthodiff = diff.orthogonal().normalized();
-            const left = bottom.plus(orthodiff.times(-width / 2));
-            const right = bottom.plus(orthodiff.times(width / 2));
+            const bottom = endBorder.minus(normdiff.times(height));
 
+            const fullTextWidth = p5.textWidth(this.label);
+            let fade = alpha[0];
+            fade = distance < fullTextWidth ? fade * distance / fullTextWidth : fade;
+            p5.fill(ALPHA(COLORS["mediumBlue"], fade));
+            p5.stroke(ALPHA(COLORS["mediumBlue"], fade));
             p5.strokeWeight(this.lineWidth);
-            if (this.selected) {
-                p5.fill(ALPHA(COLORS["lightGrey"], alpha[0]));
-                p5.stroke(ALPHA(COLORS["lightGrey"], alpha[0]));
-            } else {
-                p5.fill(ALPHA(COLORS["mediumBlue"], alpha[0]));
-                p5.stroke(ALPHA(COLORS["mediumBlue"], alpha[0]));
-            }
-            let start = startVec;
-            const b = bidirectional[this.start.id + this.end.id];
-            const rTop = startVec.plus(normdiff.times(-this.start.r));
-            if (b !== undefined && b.length > 1) {
-                for (let i = 0; i < b.length; i++) {
-                    if (b[i].id === this.id) {
-                        continue;
-                    }
-                    if (b[i].selected) {
-                        p5.stroke(ALPHA(COLORS["lightGrey"], alpha[0]));
-                    }
-                    if (b[i].start.id !== undefined && b[i].end.id !== undefined) {
-                        start = rTop.plus(normdiff.times(-height - 2));
-                    }
+
+            if (head) {
+                const orthodiff = diff.orthogonal().normalized();
+                const left = bottom.plus(orthodiff.times(-width / 2));
+                const right = bottom.plus(orthodiff.times(width / 2));
+                if (this.selected) {
+                    p5.fill(ALPHA(COLORS["lightGrey"], fade));
                 }
+                p5.noStroke();
+                p5.triangle(left.x, left.y, endBorder.x, endBorder.y, right.x, right.y);
+                return;
             }
-            p5.line(startVec.x, startVec.y, bottom.x, bottom.y);
 
+            p5.line(startBorder.x, startBorder.y, bottom.x, bottom.y);
             p5.noStroke();
-            p5.triangle(left.x, left.y, top.x, top.y, right.x, right.y);
-
-            const mid = rTop.plus(top.minus(rTop).times(0.5));
+            const mid = startBorder.plus(endBorder.minus(startBorder).times(0.5));
             p5.textSize(this.textWidth);
             p5.textAlign(p5.CENTER, p5.CENTER);
-            p5.fill(ALPHA(COLORS["black"], alpha[0]));
+            p5.fill(ALPHA(COLORS["black"], fade));
             const angle = diff.times(-1).angle(Vec(1, 0));
             p5.push()
             p5.translate(mid.x, mid.y);
@@ -193,14 +206,13 @@ const GRAPH = (global) => {
                 p5.scale(-1);
             }
             let y = 0;
-            if (startVec.x <= endVec.x) {
+            if (startBorder.x < endBorder.x) {
                 y = (-this.textWidth / 1.5);
                 p5.text(this.label, 0, y);
             } else {
                 y = (this.textWidth / 1.5);
                 p5.text(this.label, 0, y);
             }
-            const fullTextWidth = p5.textWidth(this.label);
             const textWidth = p5.textWidth(this.label.slice(0, this.editing));
             p5.stroke(ALPHA(COLORS["black"], alpha[0]));
             p5.strokeWeight(2);
@@ -267,6 +279,9 @@ const GRAPH = (global) => {
         draw() {
             for (let i = 0; i < this.edges.length; i++) {
                 this.edges[i].draw(this.bidirectional);
+            }
+            for (let i = 0; i < this.edges.length; i++) {
+                this.edges[i].draw(this.bidirectional, true);
             }
             for (let i = 0; i < this.nodes.length; i++) {
                 this.nodes[i].draw();
