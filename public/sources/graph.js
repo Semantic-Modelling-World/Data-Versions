@@ -4,12 +4,13 @@ const GRAPH = (global) => {
     const TwoD = global.TwoD;
     const COLORS = global.COLORS;
     const ALPHA = global.ALPHA;
-    const alpha = [255];
-    global.alpha = alpha;
+    const alpha = global.alpha;
     const viewpoint = [Vec(0, 0)];
     global.viewpoint = viewpoint;
     const RDF = global.RDF;
+    const Text = global.Text;
 
+    // TODO: Handle bidirectional...
 
     class Id {
         constructor(predecessor, id) {
@@ -27,21 +28,36 @@ const GRAPH = (global) => {
     }
 
     class Node extends Id {
-        constructor(predecessor, id, label, pos, width = 100, height = 45) {
+        static textPadding = Vec(15, 16);
+        static rounding = 10;
+        static strokeWeight = 3;
+
+        constructor(predecessor, id, text, pos, width = 100, height = 45) {
             super(predecessor, id);
-            this.label = label;
+            this.text = new Text(text);
             this.width = width;  // half width
             this.height = height;
             this.setPos(pos);
-            this.textWidth = 15;
             this.selected = false;
-            this.editing = -1;
-            this.strokeWeight = 3;
-            this.rounding = 10;
-            this.time_offset = Date.now();
+            this.visible = true;
+        }
+
+        copy() {
+            const node = new Node();
+            node.predecessor = this.predecessor;
+            node.id = this.id;
+            node.text = this.text.copy();
+            node.width = this.width;
+            node.height = this.height;
+            node.pos = this.pos;
+            node.selected = false;
+            node.visible = true;
+            return node;
         }
 
         setPos(pos) {
+            if (pos === undefined)
+                return;
             this.pos = pos.minus(viewpoint[0]);
         }
 
@@ -56,82 +72,52 @@ const GRAPH = (global) => {
         }
 
         draw() {
+            if (!this.visible) {
+                return;
+            }
             if (this.selected) {
-                p5.stroke(ALPHA(COLORS["lightGrey"], alpha[0]));
+                p5.stroke(ALPHA(COLORS["lightGrey"], alpha.value));
             } else {
                 p5.noStroke();
             }
-            p5.fill(ALPHA(COLORS["lightBlue"], alpha[0]));
-            p5.strokeWeight(this.strokeWeight);
-            p5.rect(this.pos.x - this.width, this.pos.y - this.height, this.width * 2, this.height * 2, this.rounding);
+            p5.fill(ALPHA(COLORS["lightBlue"], alpha.value));
+            p5.strokeWeight(Node.strokeWeight);
+            p5.rect(this.pos.x - this.width, this.pos.y - this.height, this.width * 2, this.height * 2, Node.rounding);
 
-
-            p5.noStroke();
-            p5.textSize(this.textWidth);
-            p5.textAlign(p5.CENTER, p5.CENTER);
-            p5.fill(ALPHA(COLORS["black"], alpha[0]));
-            p5.text(this.label, this.pos.x, this.pos.y);
-            const fullTextWidth = p5.textWidth(this.label);
-            const textWidth = p5.textWidth(this.label.slice(0, this.editing));
-            p5.stroke(ALPHA(COLORS["black"], alpha[0]));
-            p5.strokeWeight(2);
-            if (this.editing > -1 && (Date.now() - this.time_offset) % 1000 < 500) {
-                p5.line(this.pos.x - fullTextWidth / 2 + textWidth,
-                    this.pos.y + this.textWidth / 2,
-                    this.pos.x - fullTextWidth / 2 + textWidth,
-                    this.pos.y - this.textWidth / 2)
-            }
+            const offset = this.pos.minus(Vec(this.width, this.height)).plus(Node.textPadding);
+            this.text.draw(offset.x, offset.y);
         }
     }
     global.Node = Node;
 
     class Edge extends Id {
-        constructor(predecessor, id, label, start, end) {
+        static lineWidth = 3;
+        static loopSize = 10;
+        static triangle_height = 20;
+        static triangle_width = 15;
+        static touchWidth = 1.5;
+
+        constructor(predecessor, id, text, start, end) {
             super(predecessor, id);
-            this.label = label;
+            this.text = new Text(text);
             this.start = start;
             this.end = end;
-            this.lineWidth = 3;
-            this.textWidth = 15;
-            this.loopSize = 10;
-            this.triangle_height = 20;
-            this.triangle_width = 15;
             this.selected = false;
-            this.editing = -1;
-            this.time_offset = Date.now();
+            this.visible = true;
         }
 
-
-        touches(point, bidirectional) {
-            point = point.minus(viewpoint[0]);
-            const [startBorder, endBorder, distance] = this.getBorderPoints();
-            if (distance <= 0) {
-                return false;
-            }
-
-            const b = bidirectional[this.start.id + this.end.id];
-            const diff = endBorder.minus(startBorder);
-            const orthodiff = diff.orthogonal().normalized();
-
-            let p1 = undefined;
-            let p2 = undefined;
-            let p3 = undefined;
-            let p4 = undefined;
-            const width = this.triangle_width;
-            if (b !== undefined && b.length > 1) {
-                p1 = startBorder.plus(orthodiff.times(width * 1.2));
-                p2 = startBorder;
-                p3 = endBorder.plus(orthodiff.times(width * 1.2));
-                p4 = endBorder;
-            } else {
-                p1 = startBorder.plus(orthodiff.times(width * 1.2));
-                p2 = startBorder.plus(orthodiff.times(width * -1.2));
-                p3 = endBorder.plus(orthodiff.times(width * 1.2));
-                p4 = endBorder.plus(orthodiff.times(width * -1.2));
-            }
-
-            return TwoD.pointIntersectRect(point, p1, p2, p3, p4);
+        copy() {
+            const edge = new Edge();
+            edge.predecessor = this.predecessor;
+            edge.id = this.id;
+            edge.text = this.text.copy();
+            edge.start = this.start;
+            edge.end = this.end;
+            edge.selected = false;
+            edge.visible = true;
+            return edge;
         }
+
 
         getBorderPoint(start, end) {
             const diff = end.pos.minus(start.pos);
@@ -162,42 +148,76 @@ const GRAPH = (global) => {
             return [start, end, end.minus(start).distance()];
         }
 
-        draw(bidirectional, head = false) {
+        touches(point, bidirectional) {
+            point = point.minus(viewpoint[0]);
+            const [startBorder, endBorder, distance] = this.getBorderPoints();
+            if (distance <= 0) {
+                return false;
+            }
+
+            const b = bidirectional[this.start.id + this.end.id];
+            const diff = endBorder.minus(startBorder);
+            const orthodiff = diff.orthogonal().normalized();
+
+            let p1 = undefined;
+            let p2 = undefined;
+            let p3 = undefined;
+            let p4 = undefined;
+            const width = Edge.triangle_width;
+            if (b !== undefined && b.length > 1) {
+                p1 = startBorder.plus(orthodiff.times(width * Edge.touchWidth));
+                p2 = startBorder;
+                p3 = endBorder.plus(orthodiff.times(width * Edge.touchWidth));
+                p4 = endBorder;
+            } else {
+                p1 = startBorder.plus(orthodiff.times(width * Edge.touchWidth));
+                p2 = startBorder.plus(orthodiff.times(width * -Edge.touchWidth));
+                p3 = endBorder.plus(orthodiff.times(width * Edge.touchWidth));
+                p4 = endBorder.plus(orthodiff.times(width * -Edge.touchWidth));
+            }
+
+            return TwoD.pointIntersectRect(point, p1, p2, p3, p4);
+        }
+
+        draw(head = false) {
+            if (!this.visible) {
+                return;
+            }
+
             const [startBorder, endBorder, distance] = this.getBorderPoints();
             if (distance <= 0) {
                 return;
             }
             const diff = endBorder.minus(startBorder);
             const normdiff = diff.normalized();
-            const height = this.triangle_height;
-            const width = this.triangle_width;
+            const height = Edge.triangle_height;
+            const width = Edge.triangle_width;
             const bottom = endBorder.minus(normdiff.times(height));
 
-            const fullTextWidth = p5.textWidth(this.label);
-            let fade = alpha[0];
-            fade = distance < fullTextWidth ? fade * distance / fullTextWidth : fade;
-            p5.fill(ALPHA(COLORS["mediumBlue"], fade));
-            p5.stroke(ALPHA(COLORS["mediumBlue"], fade));
-            p5.strokeWeight(this.lineWidth);
+            const textSizes = this.text.getSize();
+            const fadeWidth = Math.max(Edge.triangle_height, textSizes[0]);
+            const oldAlpha = alpha.value;
+            alpha.value = distance < fadeWidth ? alpha.value * distance / fadeWidth : alpha.value;
 
             if (head) {
                 const orthodiff = diff.orthogonal().normalized();
                 const left = bottom.plus(orthodiff.times(-width / 2));
                 const right = bottom.plus(orthodiff.times(width / 2));
                 if (this.selected) {
-                    p5.fill(ALPHA(COLORS["lightGrey"], fade));
+                    p5.fill(ALPHA(COLORS["lightGrey"], alpha.value));
+                } else {
+                    p5.fill(ALPHA(COLORS["mediumBlue"], alpha.value));
                 }
                 p5.noStroke();
                 p5.triangle(left.x, left.y, endBorder.x, endBorder.y, right.x, right.y);
                 return;
             }
 
+            p5.strokeWeight(Edge.lineWidth);
+            p5.stroke(ALPHA(COLORS["mediumBlue"], alpha.value));
             p5.line(startBorder.x, startBorder.y, bottom.x, bottom.y);
-            p5.noStroke();
-            const mid = startBorder.plus(endBorder.minus(startBorder).times(0.5));
-            p5.textSize(this.textWidth);
-            p5.textAlign(p5.CENTER, p5.CENTER);
-            p5.fill(ALPHA(COLORS["black"], fade));
+
+            const mid = startBorder.plus(diff.times(0.5));
             const angle = diff.times(-1).angle(Vec(1, 0));
             p5.push()
             p5.translate(mid.x, mid.y);
@@ -205,21 +225,12 @@ const GRAPH = (global) => {
             if (-diff.x < 0) {
                 p5.scale(-1);
             }
-            let y = 0;
-            if (startBorder.x < endBorder.x) {
-                y = (-this.textWidth / 1.5);
-                p5.text(this.label, 0, y);
-            } else {
-                y = (this.textWidth / 1.5);
-                p5.text(this.label, 0, y);
-            }
-            const textWidth = p5.textWidth(this.label.slice(0, this.editing));
-            p5.stroke(ALPHA(COLORS["black"], alpha[0]));
-            p5.strokeWeight(2);
-            if (this.editing > -1 && (Date.now() - this.time_offset) % 1000 < 500) {
-                p5.line(-fullTextWidth / 2 + textWidth, y + this.textWidth / 2, -fullTextWidth / 2 + textWidth, y - this.textWidth / 2, this)
-            }
+            let y = textSizes[1] / 3;
+            y = startBorder.x < endBorder.x ? - 4 * y : y;
+            p5.translate(-textSizes[0] / 2, y);
+            this.text.draw(0, 0);
             p5.pop();
+            alpha.value = oldAlpha;
         }
     }
     global.Edge = Edge;
@@ -240,7 +251,7 @@ const GRAPH = (global) => {
             this.edges = edges;
             this.bidirectional = {};
             this.edges.forEach(edge => {
-                if (this.bidirectional[edge.start.id + edge.end.id]) {
+                if (this.bidirectional[edge.start.id + edge.end.id] !== undefined) {
                     this.bidirectional[edge.start.id + edge.end.id].push(edge);
                     this.bidirectional[edge.end.id + edge.start.id].push(edge);
                 } else {
@@ -277,14 +288,14 @@ const GRAPH = (global) => {
         }
 
         draw() {
-            for (let i = 0; i < this.edges.length; i++) {
-                this.edges[i].draw(this.bidirectional);
-            }
-            for (let i = 0; i < this.edges.length; i++) {
-                this.edges[i].draw(this.bidirectional, true);
-            }
             for (let i = 0; i < this.nodes.length; i++) {
                 this.nodes[i].draw();
+            }
+            for (let i = 0; i < this.edges.length; i++) {
+                this.edges[i].draw();
+            }
+            for (let i = 0; i < this.edges.length; i++) {
+                this.edges[i].draw(true);
             }
         }
     }

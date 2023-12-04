@@ -1,4 +1,4 @@
-const VIEWER = (global) => {
+const RDF = (global) => {
     const p5 = global.p5;
     const COLORS = global.COLORS;
     const PREDECESSOR = "core:predecessor";
@@ -356,12 +356,12 @@ const VIEWER = (global) => {
 
             for (let i = 0; i < graph.nodes.length; i++) {
                 const node = graph.nodes[i];
-                entries.push([":" + node.id, LABEL, "\"" + node.label + "\"@en"]);
+                entries.push([":" + node.id, LABEL, "\"" + node.text.getText() + "\"@en"]);
             }
             for (let i = 0; i < graph.edges.length; i++) {
                 const edge = graph.edges[i];
                 entries.push([":" + edge.id, EDGESTART, ":" + edge.start.id]);
-                entries.push([":" + edge.id, EDGELABEL, edge.label]);
+                entries.push([":" + edge.id, EDGELABEL, edge.text.getText()]);
                 entries.push([":" + edge.id, EDGEEND, ":" + edge.end.id]);
             }
             return new RDF(entries.map(entry => Entry.parse(entry)));
@@ -412,4 +412,4 @@ const VIEWER = (global) => {
     global.RDF = RDF;
 }
 
-export { VIEWER };
+export { RDF };

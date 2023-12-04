@@ -14,6 +14,7 @@ const ICONS = (global) => {
             p5.image(this.img, this.vec.x, this.vec.y, this.size.x, this.size.y);
             const mouse = Vec(p5.mouseX, p5.mouseY);
             if (this.touches(mouse)) {
+                p5.noStroke();
                 p5.fill(0, 0, 0, 10);
                 p5.ellipse(this.vec.x + this.size.x / 2, this.vec.y + this.size.y / 2, this.radius * 2, this.radius * 2);
             }
@@ -59,6 +60,7 @@ const ICONS = (global) => {
             p5.image(this.img, x, y, this.size.x, this.size.y);
             const mouse = Vec(p5.mouseX, p5.mouseY);
             if (this.touches(mouse)) {
+                p5.noStroke();
                 p5.fill(0, 0, 0, 10);
                 p5.ellipse(x + this.size.x / 2, y + this.size.y / 2, this.radius * 2, this.radius * 2);
             }
@@ -92,6 +94,7 @@ const ICONS = (global) => {
             }
             const mouse = Vec(p5.mouseX, p5.mouseY);
             if (this.touches(mouse)) {
+                p5.noStroke();
                 p5.fill(0, 0, 0, 10);
                 p5.ellipse(x + this.size.x / 2.5, y + this.size.y / 2.4, this.radius * 1.7, this.radius * 1.7);
             }

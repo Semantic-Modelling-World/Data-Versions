@@ -1,4 +1,7 @@
 const UTILS = (global) => {
+  const alpha = { value : 255 };
+  global.alpha = alpha;
+
   class Vector {
     constructor(x, y) {
       this.x = x;
@@ -63,9 +66,9 @@ const UTILS = (global) => {
     }
 
     static pointIntersectRect(point, p1, p2, p3, p4) {
-        const rectArea = p1.minus(p2).distance() * p1.minus(p3).distance();
-        const triArea = TwoD.triangleArea(p1, point, p4) + TwoD.triangleArea(p4, point, p3) + TwoD.triangleArea(p3, point, p2) + TwoD.triangleArea(point, p2, p1);
-        return triArea <= rectArea;
+      const rectArea = p1.minus(p2).distance() * p1.minus(p3).distance();
+      const triArea = TwoD.triangleArea(p1, point, p4) + TwoD.triangleArea(p4, point, p3) + TwoD.triangleArea(p3, point, p2) + TwoD.triangleArea(point, p2, p1);
+      return triArea <= rectArea;
     }
   }
   global.TwoD = TwoD;
@@ -86,12 +89,12 @@ const UTILS = (global) => {
   global.COLORS = COLORS;
 
 
-  function ALPHA(color, alpha) {
+  function ALPHA(color, a) {
     if (color.length < 3) {
-      return color.concat([alpha]);
+      return color.concat([a]);
     }
     const newColor = [...color];
-    newColor[3] = alpha;
+    newColor[3] = a;
     return newColor;
   }
   global.ALPHA = ALPHA;

@@ -94,7 +94,7 @@ const VERSIONING = (global) => {
             this.oldWindowHeight = -1;
 
             // RDF
-            this.rdfWidth = p5.windowWidth * 0.3;
+            this.rdfWidth = 0; // p5.windowWidth * 0.3;
             this.maxRelativeRDFWidth = 0.5;
             this.textWidth = 15;
             this.textSpacing = 5;
@@ -103,7 +103,7 @@ const VERSIONING = (global) => {
             this.dividerSize = 1;
             this.rdfDetail = false;
 
-            this.addGraph([], []);
+            this.setGraph([], []);
             this.resize(true);
             this.force();
             this.force();
@@ -113,48 +113,17 @@ const VERSIONING = (global) => {
             return this.rdfDetail ? this.selected.totalRDF : this.selected.rdf;
         }
 
-        next(index, approval = false) {
-            let changed = false;
-            while (index < this.selected.successors.length) {
-                changed = true;
-                this.selected = this.selected.successors[index];
-                if (this.selected.approval === true || approval === false) {
-                    break;
-                }
-            }
-            return changed;
-        }
-
-        previous(approval = false) {
-            let changed = false;
-            while (this.selected.predecessor !== undefined) {
-                changed = true;
-                this.selected = this.selected.predecessor;
-                if (this.selected.approval === true || approval === false) {
-                    break;
-                }
-            }
-            return changed;
-        }
-
-        addGraph(nodes, edges) {
-            if (this.selected !== undefined && this.selected.successors.length > 0) {
-                return;
+        setGraph(nodes, edges) {
+            if (this.selected === undefined) {
+                this.selected = new Graph(undefined, UUID(), nodes, edges);
             }
             this.selected = new Graph(this.selected, UUID(), nodes, edges);
-            const width = p5.windowWidth - this.rdfWidth;
-            const height = p5.windowHeight;
-            const startX = width / 2;
-            const outside = Vec(startX, height + Version.offset + Version.textWidth);
-            this.versions.push(new Version(this.selected, outside));
         }
 
-        addNode(label, pos) {
+        addNode(node) {
             const nodes = this.selected.nodes.slice();
-            const node = new Node(undefined, UUID(), label, pos);
             nodes.push(node);
-            this.addGraph(nodes, this.selected.edges.slice());
-            return node;
+            this.setGraph(nodes, this.selected.edges);
         }
 
         deleteNode(node) {
@@ -172,82 +141,31 @@ const VERSIONING = (global) => {
                     new_edges.push(edges[i]);
                 }
             }
-            this.addGraph(new_nodes, new_edges);
+            this.setGraph(new_nodes, new_edges);
         }
 
-        addEdge(label, start, end) {
+        addEdge(edge) {
             const edges = this.selected.edges.slice();
-            const edge = new Edge(undefined, UUID(), label, start, end);
+            const newEdges = []
             for (let i = 0; i < edges.length; i++) {
-                if (start.id === edges[i].start.id && end.id === edges[i].end.id) {
-                    return;
+                if (edge.start.id === edges[i].start.id && edge.end.id === edges[i].end.id) {
+                    continue;
                 }
+                newEdges.push(edges[i]);
             }
-            edges.push(edge);
-            this.addGraph(this.selected.nodes.slice(), edges);
+            newEdges.push(edge);
+            this.setGraph(this.selected.nodes.slice(), newEdges);
         }
 
         deleteEdge(edge) {
             const edges = this.selected.edges.slice();
-            const new_edges = [];
+            const newEdges = [];
             for (let i = 0; i < edges.length; i++) {
                 if (edge.id !== edges[i].id) {
-                    new_edges.push(edges[i]);
+                    newEdges.push(edges[i]);
                 }
             }
-            this.addGraph(this.selected.nodes.slice(), new_edges);
-        }
-
-        modifyNode(node) {
-            const nodes = [];
-            let change = false;
-            let new_node = undefined;
-            this.selected.nodes.forEach(n => {
-                if (n.id === node.id && n.label !== node.label) {
-                    change = true;
-                    new_node = new Node(n, UUID(), node.label, node.pos.plus(viewpoint[0]));
-                    nodes.push(new_node);
-                } else {
-                    nodes.push(n);
-                }
-            });
-            if (change === false) {
-                return;
-            }
-            const edges = [];
-            this.selected.edges.forEach(edge => {
-                if (edge.start.id === node.id && edge.end.id === node.id) {
-                    edges.push(new Edge(edge, UUID(), edge.label, new_node, new_node));
-                } else if (edge.start.id === node.id) {
-                    edges.push(new Edge(edge, UUID(), edge.label, new_node, edge.end));
-                } else if (edge.end.id === node.id) {
-                    edges.push(new Edge(edge, UUID(), edge.label, edge.start, new_node));
-                } else {
-                    edges.push(edge);
-                }
-            });
-            this.addGraph(nodes, edges);
-        }
-
-        modifyEdge(edge) {
-            const edges = [];
-            let change = false;
-            for (let i = 0; i < this.selected.edges.length; i++) {
-                const e = this.selected.edges[i];
-                if (edge.id !== e.id && edge.start.id === e.start.id && edge.end.id === e.end.id) {
-                    return;
-                }
-                if (edge.id === e.id && (edge.label !== e.label || edge.start.id !== e.start.id || edge.end.id !== e.end.id)) {
-                    edges.push(new Edge(e, UUID(), edge.label, edge.start, edge.end));
-                    change = true;
-                } else {
-                    edges.push(e);
-                }
-            };
-            if (change === false) {
-                return;
-            }
-            this.addGraph(this.selected.nodes.slice(), edges);
+            this.setGraph(this.selected.nodes.slice(), newEdges);
         }
 
         update() {
@@ -276,6 +194,7 @@ const VERSIONING = (global) => {
         }
 
         resize(changed = false) {
+            return;
             p5.textSize(RDF.captionSize);
             const minX = p5.textWidth(RDF.caption) + 4 * RDF.xSpacing;
             const maxX = this.maxRelativeRDFWidth * p5.windowWidth;
@@ -299,10 +218,10 @@ const VERSIONING = (global) => {
         draw() {
             p5.push();
             p5.translate(viewpoint[0].x, viewpoint[0].y);
-            alpha[0] = 255;
+            alpha.value = 255;
             this.selected.draw();
             p5.pop();
-            this.drawRDF();
+            // this.drawRDF();
         }
 
         drawRDF() {
@@ -315,6 +234,7 @@ const VERSIONING = (global) => {
         }
 
         touches_versions(pos) {
+            return false;
             let touching = [];
             for (let i = 0; i < this.versions.length; i++) {
                 if (this.versions[i].touches(pos)) {

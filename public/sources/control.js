@@ -9,7 +9,9 @@ let CONTROL = (global) => {
     const EditIcon = global.EditIcon;
     const HelpIcon = global.HelpIcon;
     const GlassIcon = global.GlassIcon;
-    const COMPATIBLE = "core:compatible";
+    const COMPATIBLE = "compatible";
+    const ARTIFACT = "Artifact";
+    const UUID = global.UUID;
 
     let versioning = undefined;
     let id = 0;
@@ -23,9 +25,11 @@ let CONTROL = (global) => {
     let offset = Vec(0, 0);
     let node = undefined;
     let edge = undefined;
-    let edit = undefined;
-    let original = undefined;
+    let editNode = undefined;
+    let editEdge = undefined;
     let originalEdge = undefined;
+    let originalEditNode = undefined;
+    let originalEditEdge = undefined;
     let rdfOffset = undefined;
     let changeViewpoint = false;
     let changeRDFViewpoint = false;
@@ -109,7 +113,7 @@ let CONTROL = (global) => {
     }
 
     p5.mousePressed = (event) => {
-        reset_edit();
+        set_edit();
         reset();
         const mouse = Vec(p5.mouseX, p5.mouseY);
         const nodes = versioning.selected.nodes;
@@ -121,7 +125,7 @@ let CONTROL = (global) => {
         const touching_reset = reset_icon !== undefined && reset_icon.touches(mouse);
         const touching_help = help_icon !== undefined && help_icon.touches(mouse);
         const touching_glass = glass_icon !== undefined && glass_icon.touches(mouse);
-        const newest = versioning.selected !== undefined && versioning.selected.successors.length === 0;
+        const newest = true;
 
         if (touching_reset || touching_help || touching_glass) {
         } else if (touching_rdf) {
@@ -138,7 +142,7 @@ let CONTROL = (global) => {
                 const start = nodes[touching_nodes[touching_nodes.length - 1]];
                 offset = Vec(0, 0);
                 edge = new Edge(undefined,
-                    undefined,
+                    UUID(),
                     COMPATIBLE,
                     start,
                     new Node(undefined, undefined,
@@ -148,9 +152,13 @@ let CONTROL = (global) => {
             }
         } else if (touching_edges.length > 0) {
             if (newest && isIn(event.button, controls.move_edge)) {
-                edge = edges[touching_edges[touching_edges.length - 1]];
+                originalEdge = edges[touching_edges[touching_edges.length - 1]];
+                originalEdge.visible = false;
+                edge = originalEdge.copy();
+                edge.id = UUID();
+                edge.predecessor = originalEdge.id;
+                edge.visible = true;
                 const vec = edge.getBorderPoints();
-                originalEdge = { ...edge, selected: false };
                 const relativeMouse = mouse.minus(viewpoint[0]);
                 if (relativeMouse.minus(vec[0]).distance() < relativeMouse.minus(vec[1]).distance()) {
                     edge.start = new Node(undefined, undefined, "", mouse, 0);
@@ -161,7 +169,8 @@ let CONTROL = (global) => {
             }
         } else {
             if (newest && isIn(event.button, controls.create_node)) {
-                node = versioning.addNode((id++).toString(), mouse);
+                node = new Node(undefined, UUID(), ARTIFACT + " " + (id++), mouse)
+                versioning.addNode(node);
             } else if (isIn(event.button, controls.move_graph)) {
                 changeViewpoint = true
                 offset = viewpoint[0].minus(mouse);
@@ -203,7 +212,7 @@ let CONTROL = (global) => {
     p5.mouseReleased = (event) => {
         const mouse = Vec(p5.mouseX, p5.mouseY);
         const offsetMouse = mouse.plus(offset)
-        const newest = versioning.selected !== undefined && versioning.selected.successors.length === 0;
+        const newest = true;
         const nodes = versioning.selected.nodes;
         const touching_nodes = versioning.selected.touches_nodes(offsetMouse);
         const edges = versioning.selected.edges;
@@ -238,27 +247,23 @@ let CONTROL = (global) => {
             if (newest && edge !== undefined) {
                 if (touching_nodes.length > 0) {
                     if (isIn(event.button, controls.create_edge)) {
-                        const end = nodes[touching_nodes[touching_nodes.length - 1]];
-                        if (edge.start !== end) {
-                            versioning.addEdge(COMPATIBLE, edge.start, end);
+                        edge.end = nodes[touching_nodes[touching_nodes.length - 1]];
+                        if (edge.start !== edge.end) {
+                            versioning.addEdge(edge);
                         }
                     } else if (isIn(event.button, controls.move_edge)) {
                         const other = nodes[touching_nodes[touching_nodes.length - 1]];
-                        const modified = { ...edge };
                         if (edge.end.id === undefined) {
-                            modified.start = edge.start;
-                            modified.end = other;
+                            edge.end = other;
                         } else {
-                            modified.start = other;
-                            modified.end = edge.end;
+                            edge.start = other;
                         }
-                        Object.assign(edge, originalEdge);
-                        if (modified.start !== modified.end) {
-                            versioning.modifyEdge(modified);
+                        if (edge.start !== edge.end) {
+                            console.log(originalEdge, edge)
+                            versioning.deleteEdge(originalEdge);
+                            versioning.addEdge(edge);
                         }
                     }
-                } else {
-                    Object.assign(edge, originalEdge);
                 }
             }
             if (touching_versions.length > 0) {
@@ -267,12 +272,15 @@ let CONTROL = (global) => {
                     const node = nodes[touching_nodes[touching_nodes.length - 1]];
                     versioning.deleteNode(node);
                 } else if (newest && isIn(event.button, controls.edit_node)) {
-                    const end = nodes[touching_nodes[touching_nodes.length - 1]];
-                    if (edge == undefined || edge.start === end) {
-                        original = { ...end, selected: false };
-                        edit = end;
-                        edit.editing = edit.label.length;
-                        edit.time_offset = Date.now();
+                    originalEditNode = nodes[touching_nodes[touching_nodes.length - 1]];
+                    if (edge === undefined || edge.start === originalEditNode) {
+                        originalEditNode.visible = false;
+                        editNode = originalEditNode.copy();
+                        editNode.id = UUID();
+                        editNode.predecessor = originalEditNode.id;
+                        editNode.visibile = true;
+                        editNode.text.setEdit(true);
+                        editNode.text.setCursor(-1);
                     }
                 }
             } else if (touching_edges.length > 0) {
@@ -280,11 +288,14 @@ let CONTROL = (global) => {
                     const edge = edges[touching_edges[touching_edges.length - 1]];
                     versioning.deleteEdge(edge);
                 } else if (newest && isIn(event.button, controls.edit_edge)) {
-                    const edge = edges[touching_edges[touching_edges.length - 1]];
-                    original = { ...edge, selected: false };
-                    edit = edge;
-                    edit.editing = edit.label.length;
-                    edit.time_offset = Date.now();
+                    originalEditEdge = edges[touching_edges[touching_edges.length - 1]];
+                    originalEditEdge.visible = false;
+                    editEdge = originalEditEdge.copy();
+                    editEdge.id = UUID();
+                    editEdge.predecessor = originalEditEdge.id;
+                    editEdge.visibile = true;
+                    editEdge.text.setEdit(true);
+                    editEdge.text.setCursor(-1);
                 }
             }
         }
@@ -308,50 +319,29 @@ let CONTROL = (global) => {
                     }
                 }
             }
+
             metadata[0]++;
             metadata[1] = Date.now();
-            if (edit === undefined) {
-                if (isIn(event.key, controls.previous)) {
-                    reset();
-                    versioning.previous();
-                } else if (isIn(event.key, controls.next)) {
-                    reset();
-                    versioning.next(0);
-                } else if (isIn(event.key, controls.next_approved)) {
-                    reset();
-                    versioning.next(0, true);
-                } else if (isIn(event.key, controls.previous_approved)) {
-                    reset();
-                    versioning.previous(true);
-                } else if (isIn(event.key, controls.jump_start)) {
-                    while (versioning.previous()) { }
-                } else if (isIn(event.key, controls.jump_end)) {
-                    while (versioning.next(0)) { }
-                }
-            } else {
+
+            let edit = undefined;
+            if (editNode !== undefined) {
+                edit = editNode;
+            } else if (editEdge !== undefined) {
+                edit = editEdge;
+            }
+            if (edit !== undefined) {
                 if (isIn(event.key, controls.delete_char)) {
-                    edit.label = edit.label.slice(0, edit.editing - 1) + edit.label.slice(edit.editing, edit.label.length);
-                    edit.editing = Math.max(0, edit.editing - 1);
-                    edit.time_offset = Date.now();
+                    edit.text.deleteChar();
                 } else if (isIn(event.key, controls.enter_edit)) {
-                    reset_edit();
+                    set_edit();
                 } else if (isIn(event.key, controls.escape_edit)) {
-                    if (edit !== undefined) {
-                        Object.assign(edit, original);
-                        edit.editing = -1;
-                        edit = undefined;
-                        original = undefined;
-                    }
+                    reset_edit();
                 } else if (isIn(event.key, controls.cursor_left)) {
-                    edit.editing = Math.max(0, edit.editing - 1);
-                    edit.time_offset = Date.now();
+                    edit.text.moveCursor(-1);
                 } else if (isIn(event.key, controls.cursor_right)) {
-                    edit.editing = Math.min(edit.label.length, edit.editing + 1);
-                    edit.time_offset = Date.now();
+                    edit.text.moveCursor(1);
                 } else if (event.key.length === 1) {
-                    edit.label = edit.label.slice(0, edit.editing) + event.key + edit.label.slice(edit.editing, edit.label.length);
-                    edit.editing = Math.min(edit.label.length, edit.editing + 1);
-                    edit.time_offset = Date.now();
+                    edit.text.insertChar(event.key);
                 }
             }
             return true;
@@ -360,16 +350,33 @@ let CONTROL = (global) => {
         keyChecks = [keyCheck];
     }
 
+    function set_edit() {
+        if (editNode !== undefined) {
+            if (!editNode.text.equals(originalEditNode.text)) {
+                editNode.text.setEdit(false);
+                versioning.addNode(editNode);
+            }
+        }
+        if (editEdge !== undefined) {
+            if (!editEdge.text.equals(originalEditEdge.text)) {
+                editEdge.text.setEdit(false);
+                versioning.addEdge(editEdge);
+            }
+        }
+        reset_edit();
+    }
+
     function reset() {
         holding = undefined;
         howering.forEach(h => { h.selected = false });
         howering = [];
         offset = Vec(0, 0);
-        if (originalEdge !== undefined && edge !== undefined) {
-            Object.assign(edge, originalEdge);
-        }
+        node = undefined;
         edge = undefined;
-        originalEdge = undefined;
+        if (originalEdge !== undefined) {
+            originalEdge.visible = true;
+            originalEdge = undefined;
+        }
         rdfOffset = undefined;
         changeViewpoint = false;
         changeRDFViewpoint = false;
@@ -382,29 +389,22 @@ let CONTROL = (global) => {
         if (glass_icon !== undefined) {
             glass_icon.versioning = versioning;
         }
-        node = undefined;
     }
 
     function reset_edit() {
-        if (edit !== undefined) {
-            if (edit.label === "") {
-                Object.assign(edit, original);
-                edit.editing = -1;
-                edit = undefined;
-                original = undefined;
-                return;
+        if (editNode !== undefined) {
+            if (originalEditNode) {
+                originalEditNode.visible = true;
+                originalEditNode = undefined;
             }
-
-            const modified = { ...edit };
-            Object.assign(edit, original);
-            if ("start" in edit && "end" in edit) {
-                versioning.modifyEdge(modified);
-            } else {
-                versioning.modifyNode(modified);
+            editNode = undefined;
+        }
+        if (editEdge !== undefined) {
+            if (originalEditEdge) {
+                originalEditEdge.visible = true;
+                originalEditEdge = undefined;
             }
-            edit.editing = -1;
-            edit = undefined;
-            original = undefined;
+            editEdge = undefined;
         }
     }
 
@@ -415,7 +415,6 @@ let CONTROL = (global) => {
         reset_edit();
         reset();
     }
-
 
     p5.draw = () => {
         const nodes = versioning.selected.nodes;
@@ -451,10 +450,22 @@ let CONTROL = (global) => {
 
         p5.push();
         p5.translate(viewpoint[0].x, viewpoint[0].y);
-        if (edge !== undefined && originalEdge === undefined) {
-            edge.draw({});
-            edge.draw({}, true);
+        if (editNode !== undefined) {
+            editNode.draw();
         }
+        if (edge !== undefined) {
+            edge.draw();
+        }
+        if (editEdge !== undefined) {
+            editEdge.draw();
+        }
+        if (edge !== undefined) {
+            edge.draw(true);
+        }
+        if (editEdge !== undefined) {
+            editEdge.draw(true);
+        }
+
         p5.pop();
 
         if (reset_icon !== undefined) {
