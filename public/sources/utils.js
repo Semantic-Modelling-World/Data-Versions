@@ -1,5 +1,5 @@
 const UTILS = (global) => {
-  const alpha = { value : 255 };
+  const alpha = { value: 255 };
   global.alpha = alpha;
 
   class Vector {
@@ -104,6 +104,38 @@ const UTILS = (global) => {
     return crypto.randomUUID().slice(0, 8);
   }
   global.UUID = UUID;
+
+  
+  // Would probably be better to generalize this class by only generating the time values f
+  // Additionally a global Animation Updater, Manager and different kinds of animation curves
+  // would be interesting things to do in the future when nessecary.
+  class Animation {
+    static threshold = 0.999999;
+    static speed = 0.01;
+    constructor(start, end, func) {
+      this.start = start;
+      this.end = end;
+      this.vec = this.end.minus(this.start);
+      this.time = Date.now();
+      this.func = func;
+    }
+
+    update() {
+      const t = (Date.now() - this.time) * Animation.speed;
+      const f = (1 - 1 / Math.pow(2, t));
+      if (f < Animation.threshold) {
+        this.func(this.vec.times(f).plus(this.start));
+        return true;
+      }
+      this.func(this.end);
+      return false;
+    }
+
+    force() {
+      this.func(this.end);
+    }
+  }
+  global.Animation = Animation;
 }
 
 export { UTILS };

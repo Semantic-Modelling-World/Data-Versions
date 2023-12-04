@@ -10,8 +10,11 @@ let CONTROL = (global) => {
     const HelpIcon = global.HelpIcon;
     const GlassIcon = global.GlassIcon;
     const COMPATIBLE = "compatible";
+    const PREDECESSOR = "predecessor";
+    const SUCCESSOR = "successor";
     const UUID = global.UUID;
     const COLORS = global.COLORS;
+    const Animation = global.Animation;
 
     let versioning = undefined;
     let id = 0;
@@ -359,6 +362,12 @@ let CONTROL = (global) => {
             if (!editNode.text.equals(originalEditNode.text)) {
                 editNode.text.setEdit(false);
                 versioning.addNode(editNode);
+                const newEdge = new Edge(undefined, UUID(), PREDECESSOR, originalEditNode, editNode);
+                versioning.addEdge(newEdge);
+                const vec = Vec((editNode.width + originalEditNode.width) * 2, 0);
+                const node = editNode;
+                const ani = new Animation(editNode.pos, editNode.pos.plus(vec), pos => node.setPos(pos));
+                versioning.animate.push(ani);
             }
         }
         if (editEdge !== undefined) {

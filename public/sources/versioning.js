@@ -9,34 +9,7 @@ const VERSIONING = (global) => {
     const alpha = global.alpha;
     const viewpoint = global.viewpoint;
     const RDF = global.RDF;
-
-    class Animation {
-        static threshold = 0.999999;
-        static speed = 0.01;
-        constructor(start, end, func) {
-            this.start = start;
-            this.end = end;
-            this.vec = this.end.minus(this.start);
-            this.time = Date.now();
-            this.func = func;
-        }
-
-        update() {
-            const t = (Date.now() - this.time) * Animation.speed;
-            const f = (1 - 1 / Math.pow(2, t));
-            if (f < Animation.threshold) {
-                this.func(this.vec.times(f).plus(this.start));
-                return true;
-            }
-            this.func(this.end);
-            return false;
-        }
-
-        force() {
-            this.func(this.end);
-        }
-    }
-
+    const Animation = global.Animation;
 
     class Version {
         static r = 15;
