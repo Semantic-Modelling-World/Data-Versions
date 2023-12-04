@@ -71,7 +71,7 @@ const VERSIONING = (global) => {
             this.maxRelativeRDFWidth = 0.5;
             this.textWidth = 15;
             this.textSpacing = 5;
-            this.viewpoint = Vec(0, 0);
+            this.rdfviewpoint = Vec(0, 0);
             this.captionSize = 15;
             this.dividerSize = 1;
             this.rdfDetail = false;
@@ -175,9 +175,10 @@ const VERSIONING = (global) => {
             const rdfWidth = this.animateRDF === undefined ? this.rdfWidth : this.animateRDF.end.x;
             const newRDFWidth = Math.min(maxX, Math.max(minX, x + 5 * RDF.xSpacing));
             // const newRDFWidth = Math.min(maxX, Math.max(minX, this.rdfWidth));  // Move RDF window manually
-            this.viewpoint.y = Math.min(0, Math.max(p5.windowHeight - y, this.viewpoint.y));
-            this.viewpoint.x = 0;
+            this.rdfviewpoint.y = Math.min(0, Math.max(p5.windowHeight - y, this.rdfviewpoint.y));
+            this.rdfviewpoint.x = 0;
             if (changed || rdfWidth !== newRDFWidth) {
+                // this has to be updated to new version of animation
                 this.animateRDF = new Animation(Vec(this.rdfWidth, 0), Vec(newRDFWidth, 0), pos => { this.rdfWidth = pos.x; });
             }
             const width = p5.windowWidth;
@@ -190,7 +191,7 @@ const VERSIONING = (global) => {
 
         draw() {
             p5.push();
-            p5.translate(viewpoint[0].x, viewpoint[0].y);
+            p5.translate(viewpoint.value.x, viewpoint.value.y);
             alpha.value = 255;
             this.selected.draw();
             p5.pop();
@@ -198,7 +199,7 @@ const VERSIONING = (global) => {
         }
 
         drawRDF() {
-            this.rdf().draw(p5.windowWidth - this.rdfWidth, 0, this.rdfWidth, p5.windowHeight, this.viewpoint);
+            this.rdf().draw(p5.windowWidth - this.rdfWidth, 0, this.rdfWidth, p5.windowHeight, this.rdfviewpoint);
         }
 
         touches_rdf(pos) {

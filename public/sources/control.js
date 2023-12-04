@@ -66,6 +66,12 @@ let CONTROL = (global) => {
         escape_edit: ["Escape"],
         cursor_left: ["ArrowLeft"],
         cursor_right: ["ArrowRight"],
+        cursor_up: ["ArrowUp"],
+        cursor_down: ["ArrowDown"],
+        cursor_end_line: ["ShiftRight"],
+        cursor_start_line: ["ShiftLeft"],
+        cursor_next_word: ["ControlRight"],
+        cursor_last_word: ["ControlLeft"],
         press_button: [0],
         move_rdf_vertical: ["MouseWheel"],
         move_rdf_horizontal: []  // add 0 for manual moving (and modify versioning.rdfResize too)
@@ -143,7 +149,7 @@ let CONTROL = (global) => {
         } else if (touching_nodes.length > 0) {
             if (isIn(event.button, controls.move_node)) {
                 holding = nodes[touching_nodes[touching_nodes.length - 1]];
-                offset = holding.pos.minus(mouse).plus(viewpoint[0]);
+                offset = holding.pos.minus(mouse).plus(viewpoint.value);
             } else if (newest && isIn(event.button, controls.create_edge)) {
                 const start = nodes[touching_nodes[touching_nodes.length - 1]];
                 offset = Vec(0, 0);
@@ -154,6 +160,8 @@ let CONTROL = (global) => {
                     new Node(undefined, undefined,
                         "",
                         mouse,
+                        false,
+                        0,
                         0));
             }
         } else if (touching_edges.length > 0) {
@@ -164,23 +172,23 @@ let CONTROL = (global) => {
                 edge.id = UUID();
                 edge.predecessor = originalEdge.id;
                 edge.visible = true;
-                const vec = edge.getBorderPoints();
-                const relativeMouse = mouse.minus(viewpoint[0]);
-                if (relativeMouse.minus(vec[0]).distance() < relativeMouse.minus(vec[1]).distance()) {
-                    edge.start = new Node(undefined, undefined, "", mouse, 0);
+                const {start: startBorder, end: endBorder, distance: distance} = edge.getBorderPoints();
+                const relativeMouse = mouse.minus(viewpoint.value);
+                if (relativeMouse.minus(startBorder).distance() < relativeMouse.minus(endBorder).distance()) {
+                    edge.start = new Node(undefined, undefined, "", mouse, false, 0, 0);
                 } else {
-                    edge.end = new Node(undefined, undefined, "", mouse, 0);
+                    edge.end = new Node(undefined, undefined, "", mouse, false, 0, 0);
                 }
                 offset = Vec(0, 0);
             }
         } else {
             if (newest && isIn(event.button, controls.create_node)) {
                 const text = "Version: 1.0.0\nData: 01101000";
-                node = new Node(undefined, UUID(), text, mouse)
+                node = new Node(undefined, UUID(), text, mouse, true)
                 versioning.addNode(node);
             } else if (isIn(event.button, controls.move_graph)) {
                 changeViewpoint = true
-                offset = viewpoint[0].minus(mouse);
+                offset = viewpoint.value.minus(mouse);
             }
         }
     }
@@ -198,7 +206,7 @@ let CONTROL = (global) => {
             }
         }
         if (changeViewpoint === true) {
-            viewpoint[0] = mouse.plus(offset);
+            viewpoint.value = mouse.plus(offset);
         }
         if (changeRDFViewpoint === true) {
             versioning.rdfWidth = p5.windowWidth - mouse.x - rdfOffset;
@@ -211,7 +219,7 @@ let CONTROL = (global) => {
         const touching_rdf = versioning.touches_rdf(mouse);
         if (touching_rdf) {
             if (isIn("MouseWheel", controls.move_rdf_vertical)) {
-                versioning.viewpoint.y -= event.delta * 0.2;
+                versioning.rdfviewpoint.y -= event.delta * 0.2;
             }
         }
     }
@@ -242,7 +250,7 @@ let CONTROL = (global) => {
                     } else if (glass_icon !== undefined && glass_icon.touches(mouse)) {
                         if (isIn(event.button, controls.press_button)) {
                             versioning.rdfDetail = !versioning.rdfDetail;
-                            versioning.viewpoint = Vec(0, 0);
+                            versioning.rdfviewpoint = Vec(0, 0);
                         }
                     } else if (help_icon !== undefined && help_icon.touches(mouse)) {
                         if (isIn(event.button, controls.press_button)) {
@@ -266,7 +274,6 @@ let CONTROL = (global) => {
                             edge.start = other;
                         }
                         if (edge.start !== edge.end) {
-                            console.log(originalEdge, edge)
                             versioning.deleteEdge(originalEdge);
                             versioning.addEdge(edge);
                         }
@@ -312,6 +319,7 @@ let CONTROL = (global) => {
     p5.keyPressed = (event) => {
         const metadata = [0, Date.now()];
         const keyCheck = () => {
+            console.log(event)
             if (!p5.keyIsDown(event.keyCode)) {
                 return false;
             }
@@ -347,6 +355,18 @@ let CONTROL = (global) => {
                     edit.text.moveCursor(-1);
                 } else if (isIn(event.key, controls.cursor_right)) {
                     edit.text.moveCursor(1);
+                } else if (isIn(event.key, controls.cursor_up)) {
+                    edit.text.findCursor("\n", -1);
+                } else if (isIn(event.key, controls.cursor_down)) {
+                    edit.text.findCursor("\n", 1);
+                } else if (isIn(event.key, controls.cursor_start_line)) {
+                    // TODO
+                } else if (isIn(event.key, controls.cursor_end_line)) {
+                    // TODO
+                } else if (isIn(event.key, controls.cursor_last_word)) {
+                    // TODO
+                } else if (isIn(event.key, controls.cursor_next_word)) {
+                    // TODO
                 } else if (event.key.length === 1) {
                     edit.text.insertChar(event.key);
                 }
@@ -361,13 +381,25 @@ let CONTROL = (global) => {
         if (editNode !== undefined) {
             if (!editNode.text.equals(originalEditNode.text)) {
                 editNode.text.setEdit(false);
-                versioning.addNode(editNode);
-                const newEdge = new Edge(undefined, UUID(), PREDECESSOR, originalEditNode, editNode);
-                versioning.addEdge(newEdge);
-                const vec = Vec((editNode.width + originalEditNode.width) * 2, 0);
-                const node = editNode;
-                const ani = new Animation(editNode.pos, editNode.pos.plus(vec), pos => node.setPos(pos));
-                versioning.animate.push(ani);
+                if (editNode.immutable) {
+                    versioning.addNode(editNode);
+                    const newEdge = new Edge(undefined, UUID(), PREDECESSOR, originalEditNode, editNode);
+                    versioning.addEdge(newEdge);
+                    let vec = (Vec(p5.windowWidth / 2, p5.windowHeight / 2).minus(viewpoint.value)).minus(editNode.pos);
+                    if (vec.distance() < 1) {
+                        vec = Vec(Math.random() - 0.5, Math.random() - 0.5);
+                    }
+                    const length = Vec(editNode.width, editNode.height).distance() * 1.5 + Vec(originalEditNode.width, originalEditNode.height).distance() * 1.5;
+                    const orth = vec.orthogonal().normalized().times((Math.random() - 0.5) * 1.25);
+                    vec = vec.normalized().plus(orth).times(length);
+                    const originalPos = editNode.pos.plus(viewpoint.value);
+                    const originalViewpoint = viewpoint.value;
+                    const node = editNode;
+                    const ani = new Animation(f => { node.setPos(originalPos.plus(viewpoint.value.minus(originalViewpoint)).plus(vec.times(f))) });
+                    versioning.animate.push(ani);
+                } else {
+                    originalEditNode.text = editNode.text;
+                }
             }
         }
         if (editEdge !== undefined) {
@@ -424,7 +456,7 @@ let CONTROL = (global) => {
     function reset_all() {
         id = 0;
         versioning = new Versioning();
-        viewpoint[0] = Vec(0, 0);
+        viewpoint.value = Vec(0, 0);
         reset_edit();
         reset();
     }
@@ -468,10 +500,7 @@ let CONTROL = (global) => {
         p5.text(levelText, p5.windowWidth - levelTextPadding.x, levelTextPadding.y);
 
         p5.push();
-        p5.translate(viewpoint[0].x, viewpoint[0].y);
-        if (editNode !== undefined) {
-            editNode.draw();
-        }
+        p5.translate(viewpoint.value.x, viewpoint.value.y);
         if (edge !== undefined) {
             edge.draw();
         }
@@ -483,6 +512,9 @@ let CONTROL = (global) => {
         }
         if (editEdge !== undefined) {
             editEdge.draw(true);
+        }
+        if (editNode !== undefined) {
+            editNode.draw();
         }
 
         p5.pop();

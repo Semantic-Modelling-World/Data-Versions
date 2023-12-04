@@ -5,7 +5,7 @@ const GRAPH = (global) => {
     const COLORS = global.COLORS;
     const ALPHA = global.ALPHA;
     const alpha = global.alpha;
-    const viewpoint = [Vec(0, 0)];
+    const viewpoint = {value: Vec(0, 0)};
     global.viewpoint = viewpoint;
     const RDF = global.RDF;
     const Text = global.Text;
@@ -32,7 +32,7 @@ const GRAPH = (global) => {
         static rounding = 10;
         static strokeWeight = 3;
 
-        constructor(predecessor, id, text, pos, width = 100, height = 45) {
+        constructor(predecessor, id, text, pos, immutable=false, width = 100, height = 45) {
             super(predecessor, id);
             this.text = new Text(text);
             this.width = width;  // half width
@@ -40,6 +40,7 @@ const GRAPH = (global) => {
             this.setPos(pos);
             this.selected = false;
             this.visible = true;
+            this.immutable = immutable;
         }
 
         copy() {
@@ -52,17 +53,18 @@ const GRAPH = (global) => {
             node.pos = this.pos;
             node.selected = false;
             node.visible = true;
+            node.immutable = this.immutable;
             return node;
         }
 
         setPos(pos) {
             if (pos === undefined)
                 return;
-            this.pos = pos.minus(viewpoint[0]);
+            this.pos = pos.minus(viewpoint.value);
         }
 
         touches(point) {
-            point = point.minus(viewpoint[0]);
+            point = point.minus(viewpoint.value);
             const p1 = this.pos.plus(Vec(-this.width, -this.height));
             const p2 = this.pos.plus(Vec(this.width, -this.height));
             const p3 = this.pos.plus(Vec(-this.width, this.height));
@@ -80,7 +82,11 @@ const GRAPH = (global) => {
             } else {
                 p5.noStroke();
             }
-            p5.fill(ALPHA(COLORS["lightBlue"], alpha.value));
+            if (this.immutable) {
+                p5.fill(ALPHA(COLORS["lightBlue"], alpha.value));
+            } else {
+                p5.fill(ALPHA(COLORS["mediumOrange"], alpha.value));
+            }
             p5.strokeWeight(Node.strokeWeight);
             p5.rect(this.pos.x - this.width, this.pos.y - this.height, this.width * 2, this.height * 2, Node.rounding);
 
@@ -127,6 +133,8 @@ const GRAPH = (global) => {
                 return start.pos.plus(Vec(0, start.height * Math.sign(diff.y)));
             } else if (diff.y === 0) {
                 return start.pos.plus(Vec(start.width * Math.sign(diff.x), 0));
+            } else if (start.height === 0 || start.width === 0) {
+                return start.pos;
             }
             const relative = Vec(diff.x * start.height, diff.y * start.width);
             let offset = undefined;
@@ -143,14 +151,14 @@ const GRAPH = (global) => {
             const start = this.getBorderPoint(this.start, this.end);
             const end = this.getBorderPoint(this.end, this.start);
             if (start === undefined || end === undefined || end.minus(this.start.pos).distance() <= start.minus(this.start.pos).distance()) {
-                return [undefined, undefined, 0];
+                return {start: undefined, end: undefined, distance: 0};
             }
-            return [start, end, end.minus(start).distance()];
+            return {start: start, end: end, distance: end.minus(start).distance()};
         }
 
         touches(point, bidirectional) {
-            point = point.minus(viewpoint[0]);
-            const [startBorder, endBorder, distance] = this.getBorderPoints();
+            point = point.minus(viewpoint.value);
+            const {start: startBorder, end: endBorder, distance: distance} = this.getBorderPoints();
             if (distance <= 0) {
                 return false;
             }
@@ -184,7 +192,7 @@ const GRAPH = (global) => {
                 return;
             }
 
-            const [startBorder, endBorder, distance] = this.getBorderPoints();
+            const {start: startBorder, end: endBorder, distance: distance} = this.getBorderPoints();
             if (distance <= 0) {
                 return;
             }
@@ -210,6 +218,7 @@ const GRAPH = (global) => {
                 }
                 p5.noStroke();
                 p5.triangle(left.x, left.y, endBorder.x, endBorder.y, right.x, right.y);
+                alpha.value = oldAlpha;
                 return;
             }
 
@@ -288,14 +297,14 @@ const GRAPH = (global) => {
         }
 
         draw() {
-            for (let i = 0; i < this.nodes.length; i++) {
-                this.nodes[i].draw();
-            }
             for (let i = 0; i < this.edges.length; i++) {
                 this.edges[i].draw();
             }
             for (let i = 0; i < this.edges.length; i++) {
                 this.edges[i].draw(true);
+            }
+            for (let i = 0; i < this.nodes.length; i++) {
+                this.nodes[i].draw();
             }
         }
     }

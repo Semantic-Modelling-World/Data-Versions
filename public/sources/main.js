@@ -1,6 +1,7 @@
 import { UTILS } from './utils.js';
 import { TEXT } from './text.js';
 import { RDF } from './rdf.js';
+import { ANIMATION }  from './animation.js';
 import { GRAPH } from './graph.js';
 import { VERSIONING } from './versioning.js';
 import { ICONS } from './icons.js';
@@ -12,6 +13,7 @@ const MAIN = (p5) => {
   var global = {p5: p5};
   UTILS(global);
   TEXT(global);
+  ANIMATION(global);
   RDF(global);
   GRAPH(global);
   VERSIONING(global);

@@ -79,6 +79,13 @@ const TEXT = (global) => {
             return oldCursor !== this.cursor;
         }
 
+        findCursor(char, stride) {
+            while (this.moveCursor(stride) && this.text[this.cursor] !== char) {
+                console.log(this.cursor)
+            }
+            return this.text[this.cursor] === char;
+        }
+
         insertChar(char) {
             if (!this.linebreak && char === "\n") {
                 return;
