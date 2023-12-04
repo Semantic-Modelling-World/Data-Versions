@@ -73,26 +73,24 @@ const TEXT = (global) => {
 
         moveCursor(n) {
             this.time = Date.now();
+            const oldCursor = this.cursor;
             this.cursor += n;
             this.cropCursor();
+            return oldCursor !== this.cursor;
         }
 
         insertChar(char) {
-            this.time = Date.now();
             if (!this.linebreak && char === "\n") {
                 return;
             }
-            this.text.splice(this.cursor, 0, [char]);
-            this.cursor++;
+            this.text.splice(this.cursor, 0, char);
+            this.moveCursor(1);
         }
 
         deleteChar() {
-            this.time = Date.now();
-            if (this.cursor === 0) {
-                return;
+            if (this.moveCursor(-1)) {
+                this.text.splice(this.cursor, 1);
             }
-            this.cursor--;
-            this.text.splice(this.cursor, 1, []);
         }
 
         lineEnd(index) {
@@ -105,8 +103,8 @@ const TEXT = (global) => {
         getSize() {
             p5.noStroke();
             p5.textSize(this.textSize);
-            if (!this.linbreak) {
-                return [p5.textWidth(this.text.join('')), this.text.length > 0 ? this.textSize : 0];
+            if (!this.linebreak) {
+                return {x: p5.textWidth(this.text.join('')), y: this.text.length > 0 ? this.textSize : 0};
             }
 
             let maxWidth = 0;
@@ -114,7 +112,7 @@ const TEXT = (global) => {
             let counter = 0;
             while (index < this.text.length) {
                 const end = this.lineEnd(index);
-                const candidate = p5.textWidth(this.text.slice(i, end).join(''));
+                const candidate = p5.textWidth(this.text.slice(index, end).join(''));
                 if (candidate > maxWidth) {
                     maxWidth = candidate;
                 }
@@ -122,7 +120,7 @@ const TEXT = (global) => {
                 counter += 1;
             }
             const height = counter * this.textSize + (counter - 1) * this.ySpacing;
-            return [maxWidth, height];
+            return {x: maxWidth, y: height};
         }
 
         draw(x, y) {
@@ -135,11 +133,11 @@ const TEXT = (global) => {
             let cursorY = y;
             let count = 0;
             let index = 0;
-            while (index < this.text.length) {
+            while (index <= this.text.length) {
                 const end = this.lineEnd(index);
                 const line = this.text.slice(index, end).join('');
                 if (this.cursor - index >= 0 && this.cursor - end <= 0) {
-                    cursorX = x + p5.textWidth(this.text.slice(index, this.cursor - index).join(''));
+                    cursorX = x + p5.textWidth(this.text.slice(index, this.cursor).join(''));
                     cursorY = y;
                 }
                 p5.text(line, x, y);
@@ -147,7 +145,6 @@ const TEXT = (global) => {
                 y += this.ySpacing + this.textSize;
                 count++;
             }
-
             if (this.edit && (Date.now() - this.time) % 1000 < 500) {
                 p5.stroke(ALPHA(this.cursorColor, alpha.value));
                 p5.strokeWeight(this.cursorWidth);

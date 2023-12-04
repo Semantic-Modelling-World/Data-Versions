@@ -10,8 +10,8 @@ let CONTROL = (global) => {
     const HelpIcon = global.HelpIcon;
     const GlassIcon = global.GlassIcon;
     const COMPATIBLE = "compatible";
-    const ARTIFACT = "Artifact";
     const UUID = global.UUID;
+    const COLORS = global.COLORS;
 
     let versioning = undefined;
     let id = 0;
@@ -37,6 +37,9 @@ let CONTROL = (global) => {
     let edit_icon = undefined;
     let help_icon = undefined;
     let glass_icon = undefined;
+    let levelTextSize = 32;
+    let levelTextPadding = Vec(20, 20);
+    let levelText = "Lv.1";
     let controls = {
         create_node: [0],
         move_node: [0],
@@ -169,7 +172,8 @@ let CONTROL = (global) => {
             }
         } else {
             if (newest && isIn(event.button, controls.create_node)) {
-                node = new Node(undefined, UUID(), ARTIFACT + " " + (id++), mouse)
+                const text = "Version: 1.0.0\nData: 01101000";
+                node = new Node(undefined, UUID(), text, mouse)
                 versioning.addNode(node);
             } else if (isIn(event.button, controls.move_graph)) {
                 changeViewpoint = true
@@ -333,9 +337,9 @@ let CONTROL = (global) => {
                 if (isIn(event.key, controls.delete_char)) {
                     edit.text.deleteChar();
                 } else if (isIn(event.key, controls.enter_edit)) {
-                    set_edit();
+                    edit.text.insertChar("\n");
                 } else if (isIn(event.key, controls.escape_edit)) {
-                    reset_edit();
+                    set_edit();
                 } else if (isIn(event.key, controls.cursor_left)) {
                     edit.text.moveCursor(-1);
                 } else if (isIn(event.key, controls.cursor_right)) {
@@ -447,6 +451,12 @@ let CONTROL = (global) => {
         versioning.resize();
         versioning.update();
         versioning.draw();
+
+        p5.textAlign(p5.RIGHT, p5.TOP);
+        p5.fill(COLORS["black"])
+        p5.textSize(levelTextSize);
+        p5.noStroke();
+        p5.text(levelText, p5.windowWidth - levelTextPadding.x, levelTextPadding.y);
 
         p5.push();
         p5.translate(viewpoint[0].x, viewpoint[0].y);

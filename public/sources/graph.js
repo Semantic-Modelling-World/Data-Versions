@@ -99,7 +99,7 @@ const GRAPH = (global) => {
 
         constructor(predecessor, id, text, start, end) {
             super(predecessor, id);
-            this.text = new Text(text);
+            this.text = new Text(text, false);
             this.start = start;
             this.end = end;
             this.selected = false;
@@ -195,7 +195,7 @@ const GRAPH = (global) => {
             const bottom = endBorder.minus(normdiff.times(height));
 
             const textSizes = this.text.getSize();
-            const fadeWidth = Math.max(Edge.triangle_height, textSizes[0]);
+            const fadeWidth = Math.max(Edge.triangle_height, textSizes.x);
             const oldAlpha = alpha.value;
             alpha.value = distance < fadeWidth ? alpha.value * distance / fadeWidth : alpha.value;
 
@@ -225,9 +225,9 @@ const GRAPH = (global) => {
             if (-diff.x < 0) {
                 p5.scale(-1);
             }
-            let y = textSizes[1] / 3;
+            let y = textSizes.y / 3;
             y = startBorder.x < endBorder.x ? - 4 * y : y;
-            p5.translate(-textSizes[0] / 2, y);
+            p5.translate(-textSizes.x / 2, y);
             this.text.draw(0, 0);
             p5.pop();
             alpha.value = oldAlpha;
