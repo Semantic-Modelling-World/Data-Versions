@@ -125,8 +125,12 @@ let CONTROL = (global) => {
     }
 
     p5.mousePressed = (event) => {
+        const ignoreInstruction = editNode !== undefined && isIn(event.button, controls.edit_node);
         set_edit();
         reset();
+        if (ignoreInstruction) {
+            return;
+        }
         const mouse = Vec(p5.mouseX, p5.mouseY);
         const nodes = versioning.selected.nodes;
         const edges = versioning.selected.edges;
@@ -150,6 +154,7 @@ let CONTROL = (global) => {
             if (isIn(event.button, controls.move_node)) {
                 holding = nodes[touching_nodes[touching_nodes.length - 1]];
                 offset = holding.pos.minus(mouse).plus(viewpoint.value);
+                versioning.cancel_animation(holding);
             } else if (newest && isIn(event.button, controls.create_edge)) {
                 const start = nodes[touching_nodes[touching_nodes.length - 1]];
                 offset = Vec(0, 0);
@@ -183,7 +188,7 @@ let CONTROL = (global) => {
             }
         } else {
             if (newest && isIn(event.button, controls.create_node)) {
-                const text = "Version: 1.0.0\nData: 01101000";
+                const text = "Version 1.0.0\nData 00001111\n";
                 node = new Node(undefined, UUID(), text, mouse, true)
                 versioning.addNode(node);
             } else if (isIn(event.button, controls.move_graph)) {
@@ -287,6 +292,7 @@ let CONTROL = (global) => {
                     versioning.deleteNode(node);
                 } else if (newest && isIn(event.button, controls.edit_node)) {
                     originalEditNode = nodes[touching_nodes[touching_nodes.length - 1]];
+                    const row = originalEditNode.touches_row(offsetMouse);
                     if (edge === undefined || edge.start === originalEditNode) {
                         originalEditNode.visible = false;
                         editNode = originalEditNode.copy();
@@ -294,7 +300,10 @@ let CONTROL = (global) => {
                         editNode.predecessor = originalEditNode.id;
                         editNode.visibile = true;
                         editNode.text.setEdit(true);
-                        editNode.text.setCursor(-1);
+                        editNode.text.setCursor(0);
+                        if (editNode.text.findCursorRepeat("\n", 1, row + 1)) {
+                            editNode.text.moveCursor(-1);
+                        }
                     }
                 }
             } else if (touching_edges.length > 0) {
@@ -356,8 +365,10 @@ let CONTROL = (global) => {
                 } else if (isIn(event.key, controls.cursor_right)) {
                     edit.text.moveCursor(1);
                 } else if (isIn(event.key, controls.cursor_up)) {
+                    edit.text.moveCursor(-1);
                     edit.text.findCursor("\n", -1);
                 } else if (isIn(event.key, controls.cursor_down)) {
+                    edit.text.moveCursor(1);
                     edit.text.findCursor("\n", 1);
                 } else if (isIn(event.key, controls.cursor_start_line)) {
                     // TODO
@@ -395,7 +406,7 @@ let CONTROL = (global) => {
                     const originalPos = editNode.pos.plus(viewpoint.value);
                     const originalViewpoint = viewpoint.value;
                     const node = editNode;
-                    const ani = new Animation(f => { node.setPos(originalPos.plus(viewpoint.value.minus(originalViewpoint)).plus(vec.times(f))) });
+                    const ani = new Animation(f => { node.setPos(originalPos.plus(viewpoint.value.minus(originalViewpoint)).plus(vec.times(f))) }, node);
                     versioning.animate.push(ani);
                 } else {
                     originalEditNode.text = editNode.text;

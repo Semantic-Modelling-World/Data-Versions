@@ -141,31 +141,6 @@ const VERSIONING = (global) => {
             this.setGraph(this.selected.nodes.slice(), newEdges);
         }
 
-        update() {
-            const animate = [];
-            this.animate.forEach(ani => {
-                if (ani.update()) {
-                    animate.push(ani);
-                }
-            });
-            this.animate = animate;
-            if (this.animateRDF !== undefined) {
-                if (!this.animateRDF.update()) {
-                    this.animateRDF = undefined;
-                }
-            }
-        }
-
-        force() {
-            this.animate.forEach(ani => {
-                ani.force();
-            });
-            if (this.animateRDF !== undefined) {
-                this.animateRDF.force();
-                this.animateRDF = undefined;
-            }
-        }
-
         resize(changed = false) {
             return;
             p5.textSize(RDF.captionSize);

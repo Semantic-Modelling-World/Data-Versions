@@ -80,10 +80,19 @@ const TEXT = (global) => {
         }
 
         findCursor(char, stride) {
-            while (this.moveCursor(stride) && this.text[this.cursor] !== char) {
-                console.log(this.cursor)
+            while (this.text[this.cursor] !== char && this.moveCursor(stride)) {
             }
             return this.text[this.cursor] === char;
+        }
+
+        findCursorRepeat(char, stride, repetitions) {
+            for (let i = 0; i < repetitions; i++) {
+                this.findCursor(char, stride);
+                if (!this.moveCursor(stride)) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         insertChar(char) {
@@ -98,6 +107,7 @@ const TEXT = (global) => {
             if (this.moveCursor(-1)) {
                 this.text.splice(this.cursor, 1);
             }
+            console.log(this.text)
         }
 
         lineEnd(index) {
@@ -111,7 +121,7 @@ const TEXT = (global) => {
             p5.noStroke();
             p5.textSize(this.textSize);
             if (!this.linebreak) {
-                return {x: p5.textWidth(this.text.join('')), y: this.text.length > 0 ? this.textSize : 0};
+                return {x: p5.textWidth(this.text.join('')), y: this.text.length > 0 ? this.textSize : 0, rows: this.text.length > 0 ? 1 : 0};
             }
 
             let maxWidth = 0;
@@ -127,7 +137,7 @@ const TEXT = (global) => {
                 counter += 1;
             }
             const height = counter * this.textSize + (counter - 1) * this.ySpacing;
-            return {x: maxWidth, y: height};
+            return {x: maxWidth, y: height, rows: counter};
         }
 
         draw(x, y) {

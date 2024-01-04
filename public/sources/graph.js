@@ -73,6 +73,15 @@ const GRAPH = (global) => {
             return res;
         }
 
+        touches_row(point) {
+            point = point.minus(viewpoint.value);
+            const offset = this.pos.minus(Vec(this.width, this.height)).plus(Node.textPadding);
+            const y = point.minus(offset).y;
+            let row = Math.floor(y / (this.text.ySpacing + this.text.textSize));
+            row = Math.max(0, Math.min(row, this.text.getSize().rows - 1));
+            return row;
+        }
+
         draw() {
             if (!this.visible) {
                 return;
@@ -214,7 +223,7 @@ const GRAPH = (global) => {
                 if (this.selected) {
                     p5.fill(ALPHA(COLORS["lightGrey"], alpha.value));
                 } else {
-                    p5.fill(ALPHA(COLORS["mediumBlue"], alpha.value));
+                    p5.fill(ALPHA(COLORS["lightBlue"], alpha.value));
                 }
                 p5.noStroke();
                 p5.triangle(left.x, left.y, endBorder.x, endBorder.y, right.x, right.y);
@@ -223,7 +232,7 @@ const GRAPH = (global) => {
             }
 
             p5.strokeWeight(Edge.lineWidth);
-            p5.stroke(ALPHA(COLORS["mediumBlue"], alpha.value));
+            p5.stroke(ALPHA(COLORS["lightBlue"], alpha.value));
             p5.line(startBorder.x, startBorder.y, bottom.x, bottom.y);
 
             const mid = startBorder.plus(diff.times(0.5));
