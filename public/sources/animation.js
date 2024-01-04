@@ -26,50 +26,41 @@ const ANIMATION = (global) => {
     global.Animation = Animation;
 
     class Animator {
-        static threshold = 0.999999;
-        static speed = 0.01;
-
-        constructor(animations) {
+        constructor(animate) {
             this.animate = animate;
         }
-    }
 
-    update() {
-        const animate = [];
-        this.animate.forEach(ani => {
-            if (ani.update()) {
-                animate.push(ani);
-            }
-        });
-        this.animate = animate;
-        if (this.animateRDF !== undefined) {
-            if (!this.animateRDF.update()) {
+        update() {
+            const animate = [];
+            this.animate.forEach(ani => {
+                if (ani.update()) {
+                    animate.push(ani);
+                }
+            });
+            this.animate = animate;
+        }
+
+        cancel(node) {
+            const animate = [];
+            this.animate.forEach(ani => {
+                if (ani.obj !== node) {
+                    animate.push(ani);
+                }
+            });
+            this.animate = animate;
+        }
+
+        force() {
+            this.animate.forEach(ani => {
+                ani.force();
+            });
+            if (this.animateRDF !== undefined) {
+                this.animateRDF.force();
                 this.animateRDF = undefined;
             }
         }
     }
-
-    cancel_animation(node) {
-        const animate = [];
-        this.animate.forEach(ani => {
-            if (ani.obj !== node) {
-                animate.push(ani);
-            }
-        });
-        this.animate = animate;
-    }
-
-    force() {
-        this.animate.forEach(ani => {
-            ani.force();
-        });
-        if (this.animateRDF !== undefined) {
-            this.animateRDF.force();
-            this.animateRDF = undefined;
-        }
-    }
-}
-global.Animator = Animator;
+    global.Animator = Animator;
 
 }
 

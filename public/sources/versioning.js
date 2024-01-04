@@ -57,15 +57,6 @@ const VERSIONING = (global) => {
             this.height = 5;
             this.offset = 50;
 
-            // animation
-            this.animate = [];
-            this.animateRDF = undefined;
-            this.versions = [];
-            this.index = 0;
-            this.spacing = 100;
-            this.oldWindowWidth = -1;
-            this.oldWindowHeight = -1;
-
             // RDF
             this.rdfWidth = 0; // p5.windowWidth * 0.3;
             this.maxRelativeRDFWidth = 0.5;
@@ -77,9 +68,6 @@ const VERSIONING = (global) => {
             this.rdfDetail = false;
 
             this.setGraph([], []);
-            this.resize(true);
-            this.force();
-            this.force();
         }
 
         rdf() {
@@ -141,29 +129,6 @@ const VERSIONING = (global) => {
             this.setGraph(this.selected.nodes.slice(), newEdges);
         }
 
-        resize(changed = false) {
-            return;
-            p5.textSize(RDF.captionSize);
-            const minX = p5.textWidth(RDF.caption) + 4 * RDF.xSpacing;
-            const maxX = this.maxRelativeRDFWidth * p5.windowWidth;
-            const [x, y] = this.rdf().draw(0, 0, 0, 0, Vec(0, 0), true);
-            const rdfWidth = this.animateRDF === undefined ? this.rdfWidth : this.animateRDF.end.x;
-            const newRDFWidth = Math.min(maxX, Math.max(minX, x + 5 * RDF.xSpacing));
-            // const newRDFWidth = Math.min(maxX, Math.max(minX, this.rdfWidth));  // Move RDF window manually
-            this.rdfviewpoint.y = Math.min(0, Math.max(p5.windowHeight - y, this.rdfviewpoint.y));
-            this.rdfviewpoint.x = 0;
-            if (changed || rdfWidth !== newRDFWidth) {
-                // this has to be updated to new version of animation
-                this.animateRDF = new Animation(Vec(this.rdfWidth, 0), Vec(newRDFWidth, 0), pos => { this.rdfWidth = pos.x; });
-            }
-            const width = p5.windowWidth;
-            const height = p5.windowHeight;
-            if (this.oldWindowWidth !== width || this.oldWindowHeight !== height) {
-                this.oldWindowWidth = width;
-                this.oldWindowHeight = height;
-            }
-        }
-
         draw() {
             p5.push();
             p5.translate(viewpoint.value.x, viewpoint.value.y);
@@ -180,17 +145,6 @@ const VERSIONING = (global) => {
         touches_rdf(pos) {
             const startX = p5.windowWidth - this.rdfWidth;
             return pos.x >= startX && pos.y >= 0 && pos.x <= p5.windowWidth && pos.y <= p5.windowHeight;
-        }
-
-        touches_versions(pos) {
-            return false;
-            let touching = [];
-            for (let i = 0; i < this.versions.length; i++) {
-                if (this.versions[i].touches(pos)) {
-                    touching.push(i);
-                }
-            }
-            return touching;
         }
     }
     global.Versioning = Versioning;

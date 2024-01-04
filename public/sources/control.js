@@ -15,8 +15,10 @@ let CONTROL = (global) => {
     const UUID = global.UUID;
     const COLORS = global.COLORS;
     const Animation = global.Animation;
+    const Animator = global.Animator;
 
     let versioning = undefined;
+    let animator = new Animator([]);
     let id = 0;
     let keyChecks = [];
     let checkInitial = 400;
@@ -80,6 +82,7 @@ let CONTROL = (global) => {
 
     p5.setup = () => {
         versioning = new Versioning();
+        animator = new Animator([]);
         const canvas = p5.createCanvas(p5.windowWidth, p5.windowHeight);
         windowWidth = p5.windowWidth;
         windowHeight = p5.windowHeight;
@@ -89,30 +92,6 @@ let CONTROL = (global) => {
         p5.loadImage('assets/reload.png', img => {
             reset_icon = new ResetIcon(img, Vec(10, 10), 1 / 2.5, 17);
         });
-        /* p5.loadImage('assets/edit.png', img => {
-            edit_icon = new EditIcon(img, Vec(10, 10), 1 / 3, 20, versioning);
-        }); */
-        /* p5.loadImage('assets/question.png', img => {
-            help_icon = new HelpIcon(img, Vec(10, 10), 1 / 3, 18, versioning);
-        }); */
-        /*let otherLoadedIcon = undefined;
-        const glassIcon = (loadedIcon, isChecked) => {
-            if (otherLoadedIcon === undefined) {
-                otherLoadedIcon = loadedIcon;
-                return;
-            }
-            let [checked, unchecked] = [loadedIcon, otherLoadedIcon];
-            if (isChecked === false) {
-                [checked, unchecked] = [unchecked, checked];
-            }
-            glass_icon = new GlassIcon(unchecked, checked, Vec(10, 10), 1 / 2.6, 18, versioning);
-        };
-        p5.loadImage('assets/glass_unchecked.png', unchecked => {
-            glassIcon(unchecked, false);
-        });
-        p5.loadImage('assets/glass_checked.png', checked => {
-            glassIcon(checked, true);
-        });*/
     }
 
     function isIn(el, ls) {
@@ -137,7 +116,6 @@ let CONTROL = (global) => {
         const touching_nodes = versioning.selected.touches_nodes(mouse);
         const touching_edges = versioning.selected.touches_edges(mouse);
         const touching_rdf = versioning.touches_rdf(mouse);
-        const touching_versions = versioning.touches_versions(mouse);
         const touching_reset = reset_icon !== undefined && reset_icon.touches(mouse);
         const touching_help = help_icon !== undefined && help_icon.touches(mouse);
         const touching_glass = glass_icon !== undefined && glass_icon.touches(mouse);
@@ -149,12 +127,11 @@ let CONTROL = (global) => {
                 changeRDFViewpoint = true;
                 rdfOffset = p5.windowWidth - versioning.rdfWidth - mouse.x;
             }
-        } else if (touching_versions.length > 0) {
         } else if (touching_nodes.length > 0) {
             if (isIn(event.button, controls.move_node)) {
                 holding = nodes[touching_nodes[touching_nodes.length - 1]];
                 offset = holding.pos.minus(mouse).plus(viewpoint.value);
-                versioning.cancel_animation(holding);
+                animator.cancel(holding);
             } else if (newest && isIn(event.button, controls.create_edge)) {
                 const start = nodes[touching_nodes[touching_nodes.length - 1]];
                 offset = Vec(0, 0);
@@ -215,7 +192,6 @@ let CONTROL = (global) => {
         }
         if (changeRDFViewpoint === true) {
             versioning.rdfWidth = p5.windowWidth - mouse.x - rdfOffset;
-            versioning.resize(true);
         }
     }
 
@@ -237,17 +213,10 @@ let CONTROL = (global) => {
         const touching_nodes = versioning.selected.touches_nodes(offsetMouse);
         const edges = versioning.selected.edges;
         const touching_edges = versioning.selected.touches_edges(offsetMouse);
-        const versions = versioning.versions;
-        const touching_versions = versioning.touches_versions(mouse);
         if (node === undefined) {
             if (holding === undefined) {
                 if (edge === undefined) {
-                    if (touching_versions.length > 0) {
-                        if (isIn(event.button, controls.jump_graph)) {
-                            const version = versions[touching_versions[touching_versions.length - 1]];
-                            versioning.selected = version.graph;
-                        }
-                    } else if (reset_icon !== undefined && reset_icon.touches(mouse)) {
+                    if (reset_icon !== undefined && reset_icon.touches(mouse)) {
                         if (isIn(event.button, controls.press_button)) {
                             reset_all();
                             return;
@@ -285,8 +254,7 @@ let CONTROL = (global) => {
                     }
                 }
             }
-            if (touching_versions.length > 0) {
-            } else if (touching_nodes.length > 0) {
+            if (touching_nodes.length > 0) {
                 if (newest && isIn(event.button, controls.delete_node)) {
                     const node = nodes[touching_nodes[touching_nodes.length - 1]];
                     versioning.deleteNode(node);
@@ -328,7 +296,6 @@ let CONTROL = (global) => {
     p5.keyPressed = (event) => {
         const metadata = [0, Date.now()];
         const keyCheck = () => {
-            console.log(event)
             if (!p5.keyIsDown(event.keyCode)) {
                 return false;
             }
@@ -407,7 +374,7 @@ let CONTROL = (global) => {
                     const originalViewpoint = viewpoint.value;
                     const node = editNode;
                     const ani = new Animation(f => { node.setPos(originalPos.plus(viewpoint.value.minus(originalViewpoint)).plus(vec.times(f))) }, node);
-                    versioning.animate.push(ani);
+                    animator.animate.push(ani);
                 } else {
                     originalEditNode.text = editNode.text;
                 }
@@ -467,6 +434,7 @@ let CONTROL = (global) => {
     function reset_all() {
         id = 0;
         versioning = new Versioning();
+        animator = new Animator([]);
         viewpoint.value = Vec(0, 0);
         reset_edit();
         reset();
@@ -500,8 +468,7 @@ let CONTROL = (global) => {
         }
         p5.background(230, 230, 231);
 
-        versioning.resize();
-        versioning.update();
+        animator.update();
         versioning.draw();
 
         p5.textAlign(p5.RIGHT, p5.TOP);
