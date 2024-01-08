@@ -26,8 +26,12 @@ const ANIMATION = (global) => {
     global.Animation = Animation;
 
     class Animator {
-        constructor(animate) {
-            this.animate = animate;
+        constructor() {
+            this.clear();
+        }
+
+        clear() {
+            this.animate = [];
         }
 
         update() {
@@ -40,10 +44,10 @@ const ANIMATION = (global) => {
             this.animate = animate;
         }
 
-        cancel(node) {
+        cancel(obj) {
             const animate = [];
             this.animate.forEach(ani => {
-                if (ani.obj !== node) {
+                if (ani.obj !== obj) {
                     animate.push(ani);
                 }
             });
@@ -54,14 +58,9 @@ const ANIMATION = (global) => {
             this.animate.forEach(ani => {
                 ani.force();
             });
-            if (this.animateRDF !== undefined) {
-                this.animateRDF.force();
-                this.animateRDF = undefined;
-            }
         }
     }
-    global.Animator = Animator;
-
+    global.animator = new Animator([]);
 }
 
 export { ANIMATION };

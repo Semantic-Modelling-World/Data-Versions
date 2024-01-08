@@ -1,6 +1,6 @@
 const TEXT = (global) => {
     const p5 = global.p5;
-    const alpha = global.alpha;
+    const view = global.view;
     const ALPHA = global.ALPHA;
     const COLORS = global.COLORS;
 
@@ -107,7 +107,6 @@ const TEXT = (global) => {
             if (this.moveCursor(-1)) {
                 this.text.splice(this.cursor, 1);
             }
-            console.log(this.text)
         }
 
         lineEnd(index) {
@@ -144,7 +143,7 @@ const TEXT = (global) => {
             p5.textAlign(p5.LEFT, p5.TOP);
             p5.noStroke();
             p5.textSize(this.textSize);
-            p5.fill(ALPHA(this.textColor, alpha.value));
+            p5.fill(ALPHA(this.textColor, view.alpha));
 
             let cursorX = x;
             let cursorY = y;
@@ -163,7 +162,7 @@ const TEXT = (global) => {
                 count++;
             }
             if (this.edit && (Date.now() - this.time) % 1000 < 500) {
-                p5.stroke(ALPHA(this.cursorColor, alpha.value));
+                p5.stroke(ALPHA(this.cursorColor, view.alpha));
                 p5.strokeWeight(this.cursorWidth);
                 p5.line(cursorX, cursorY, cursorX, cursorY + this.textSize);
             }

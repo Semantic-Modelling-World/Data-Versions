@@ -1,6 +1,5 @@
 const UTILS = (global) => {
-  const alpha = { value: 255 };
-  global.alpha = alpha;
+  const p5 = global.p5;
 
   class Vector {
     constructor(x, y) {
@@ -104,6 +103,29 @@ const UTILS = (global) => {
     return crypto.randomUUID().slice(0, 8);
   }
   global.UUID = UUID;
+
+  const view = { alpha: 255, viewpoint: Vec(0, 0), scale: 1 };
+  global.view = view;
+
+  global.applyView = (point, v) => {
+    if (v === undefined) {
+      v = view;
+    }
+    const center = Vec(p5.windowWidth / 2, p5.windowHeight / 2);
+    const scaled = point.minus(center).times(1/v.scale).plus(center);
+    const translated = scaled.minus(v.viewpoint);
+    return translated;
+  }
+
+  global.unapplyView = (point, v) => {
+    if (v === undefined) {
+      v = view;
+    }
+    const center = Vec(p5.windowWidth / 2, p5.windowHeight / 2);
+    const translated = point.plus(v.viewpoint);
+    const scaled = translated.minus(center).times(v.scale).plus(center);
+    return scaled;
+  }
 }
 
 export { UTILS };
