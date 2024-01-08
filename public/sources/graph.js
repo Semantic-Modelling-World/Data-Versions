@@ -28,19 +28,22 @@ const GRAPH = (global) => {
     class Node extends Id {
         static textPadding = Vec(15, 16);
         static minWidth = 70;
-        static minHeight = 30;
+        static minHeight = (Text.textSize * 2 + Text.ySpacing + Node.textPadding.y * 2) / 2;
         static rounding = 10;
         static strokeWeight = 3;
 
-        constructor(predecessor, id, text, pos, immutable = false, width = Node.minWidth, height = Node.minHeight) {
+        constructor(predecessor, id, text, pos, immutable = false, minWidth = Node.minWidth, minHeight = Node.minHeight) {
             super(predecessor, id);
             this.text = new Text(text);
-            this.width = width;  // half width
-            this.height = height;
+            this.width = 0;  // half width
+            this.height = 0;
+            this.minWidth = minWidth;
+            this.minHeight = minHeight;
             this.pos = pos;
             this.selected = false;
             this.visible = true;
             this.immutable = immutable;
+            this.resize();
         }
 
         copy() {
@@ -50,6 +53,8 @@ const GRAPH = (global) => {
             node.text = this.text.copy();
             node.width = this.width;
             node.height = this.height;
+            node.minWidth = this.minWidth;
+            node.minHeight = this.minHeight;
             node.pos = this.pos;
             node.selected = false;
             node.visible = true;
@@ -76,16 +81,17 @@ const GRAPH = (global) => {
             return row;
         }
 
-        draw() {
+        resize() {
             let size = this.text.getSize();
             size = { x: size.x / 2 + Node.textPadding.x, y: size.y / 2 + Node.textPadding.y }
             if (this.width != size.x || this.height != size.y) {
-                if (size.x > Node.minWidth || size.y > Node.minHeight) {
-                    this.width = Math.max(Node.minWidth, size.x);
-                    this.height = Math.max(Node.minHeight, size.y);
-                }
+                this.width = Math.max(this.minWidth, size.x);
+                this.height = Math.max(this.minHeight, size.y);
             }
+        }
 
+        draw() {
+            this.resize();
             if (!this.visible) {
                 return;
             }

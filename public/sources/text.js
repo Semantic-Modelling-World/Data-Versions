@@ -5,11 +5,13 @@ const TEXT = (global) => {
     const COLORS = global.COLORS;
 
     class Text {
-        constructor(text, linebreak = true, textSize = 15, textColor = COLORS["black"]) {
+        static textSize = 15;
+        static ySpacing = 5;
+        constructor(text, linebreak = true, textSize = Text.textSize, textColor = COLORS["black"]) {
             this.linebreak = linebreak;
             this.textSize = textSize;
             this.textColor = textColor;
-            this.ySpacing = 5;
+            this.ySpacing = Text.ySpacing;
             this.edit = false;
             this.cursor = 0;
             this.cursorColor = COLORS["black"];
@@ -17,6 +19,12 @@ const TEXT = (global) => {
             this.time = Date.now();
             this.text = []
             this.setText(text);
+        }
+
+        static getWidth(text) {
+            p5.textSize(Text.textSize);
+            p5.noStroke();
+            return p5.textWidth(text);
         }
 
         copy() {

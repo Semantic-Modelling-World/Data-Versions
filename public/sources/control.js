@@ -7,6 +7,9 @@ let CONTROL = (global) => {
     const ResetIcon = global.ResetIcon;
     const COMPATIBLE = "compatible";
     const PREDECESSOR = "predecessor";
+    const BELONGSTO = "belongs to";
+    const NAME = "name";
+    const VERSION = "version";
     const UUID = global.UUID;
     const COLORS = global.COLORS;
     const Animation = global.Animation;
@@ -14,7 +17,8 @@ let CONTROL = (global) => {
     const view = global.view;
     const applyView = global.applyView;
     const unapplyView = global.unapplyView;
-    const TwoD = global.TwoD;
+    const TwoD = global.TwoD
+    const Text = global.Text;
 
     let versioning = undefined;
     let keyChecks = [];
@@ -80,16 +84,68 @@ let CONTROL = (global) => {
         reset_all();
         levelText = "Lv.1";
         const text = "Version 1.0.0\nData 00001111";
-        node = new Node(undefined, UUID(), text, applyView(Vec(windowWidth / 4, windowHeight / 4)), true)
+        const node = new Node(
+            undefined,
+            UUID(), 
+            text,
+            applyView(Vec(windowWidth / 4, windowHeight / 4)),
+            true)
         versioning.addNode(node);
     }
 
     function startLevel2() {
         reset_all();
         levelText = "Lv.2";
-        const text = "Version 2.0.0\nData 00001111";
-        node = new Node(undefined, UUID(), text, applyView(Vec(windowWidth / 4, windowHeight / 4)), true)
-        versioning.addNode(node);
+        let text = UUID();
+        const uuid = new Node(
+            undefined,
+            UUID(),
+            text,
+            applyView(Vec(windowWidth / 4, windowHeight / 4)),
+            false,
+            Text.textSize * 2,
+            (Text.textSize + Node.textPadding.y * 2) / 2)
+        versioning.addNode(uuid);
+
+        text = "Version 1.0.0\nData 00001111";
+        let distance = Node.minHeight + uuid.height + Text.getWidth(BELONGSTO) * 2;
+        const data = new Node(
+            undefined,
+            UUID(),
+            text,
+            applyView(Vec(windowWidth / 4, windowHeight / 4 + distance)),
+            true)
+        versioning.addNode(data);
+        const belongsto = new Edge(undefined, UUID(), BELONGSTO, uuid, data);
+        versioning.addEdge(belongsto);
+
+        distance = Node.minHeight + uuid.height + Text.getWidth(NAME) * 2.5;
+        text = "Sensor Driver";
+        const driver = new Node(
+            undefined,
+            UUID(),
+            text,
+            applyView(Vec(windowWidth / 4 - distance, windowHeight / 4 + distance)),
+            false,
+            Text.textSize * 2,
+            (Text.textSize + Node.textPadding.y * 2) / 2)
+        versioning.addNode(driver);
+        const name = new Edge(undefined, UUID(), NAME, uuid, driver);
+        versioning.addEdge(name);
+
+        distance = Node.minHeight + uuid.height + Text.getWidth(VERSION) * 2;
+        text = "1.0.0";
+        const version = new Node(
+            undefined,
+            UUID(),
+            text,
+            applyView(Vec(windowWidth / 4 + distance, windowHeight / 4 + distance)),
+            false,
+            Text.textSize * 2,
+            (Text.textSize + Node.textPadding.y * 2) / 2)
+        versioning.addNode(version);
+        const versionEdge = new Edge(undefined, UUID(), VERSION, uuid, version);
+        versioning.addEdge(versionEdge);
     }
 
     function isIn(el, ls) {
