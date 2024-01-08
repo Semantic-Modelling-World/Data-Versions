@@ -86,7 +86,7 @@ let CONTROL = (global) => {
         const text = "Version 1.0.0\nData 00001111";
         const node = new Node(
             undefined,
-            UUID(), 
+            UUID(),
             text,
             applyView(Vec(windowWidth / 4, windowHeight / 4)),
             true)
@@ -402,6 +402,14 @@ let CONTROL = (global) => {
         keyChecks = [keyCheck];
     }
 
+    function spawn_child(parent, child, vec) {
+        const originalPos = unapplyView(child.pos);
+        const originalView = { ...view };
+        const node = child;
+        const ani = new Animation(f => { node.pos = applyView(originalPos, originalView).plus(vec.times(f)) }, node);
+        animator.animate.push(ani);
+    }
+
     function set_edit() {
         if (editNode !== undefined) {
             if (!editNode.text.equals(originalEditNode.text)) {
@@ -410,16 +418,14 @@ let CONTROL = (global) => {
                     versioning.addNode(editNode);
                     const newEdge = new Edge(undefined, UUID(), PREDECESSOR, originalEditNode, editNode);
                     versioning.addEdge(newEdge);
-                    let vec = Vec(1, windowHeight / windowWidth);
+
                     const length = Math.max(editNode.width, editNode.height) + Math.max(originalEditNode.width, originalEditNode.height) + newEdge.text.getSize().x + 20;
+                    let vec = Vec(1, windowHeight / windowWidth);
                     const orth = vec.orthogonal().normalized();
                     const inter = Math.random() - 0.5;
                     vec = vec.normalized().times(1 - inter).plus(orth.times(inter)).normalized().times(length);
-                    const originalPos = unapplyView(editNode.pos);
-                    const originalView = { ...view };
-                    const node = editNode;
-                    const ani = new Animation(f => { node.pos = applyView(originalPos, originalView).plus(vec.times(f)) }, node);
-                    animator.animate.push(ani);
+
+                    spawn_child(originalEditNode, editNode, vec);
                 } else {
                     originalEditNode.text = editNode.text;
                 }
