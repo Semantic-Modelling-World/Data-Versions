@@ -133,7 +133,10 @@ const TEXT = (global) => {
                     maxWidth = candidate;
                 }
                 index = end + 1;
-                counter += 1;
+                counter++;
+            }
+            if (this.edit === true && this.cursor === this.text.length && this.text[this.text.length-1] === "\n") {
+                counter++;
             }
             const height = counter * this.textSize + (counter - 1) * this.ySpacing;
             return {x: maxWidth, y: height, rows: counter};

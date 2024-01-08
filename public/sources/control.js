@@ -49,14 +49,6 @@ let CONTROL = (global) => {
         edit_edge: [2],
         delete_edge: [1],
         move_graph: [2],
-        next: ["ArrowRight"],
-        previous: ["ArrowLeft"],
-        next_approved: ["ArrowUp", "PageUp"],
-        previous_approved: ["ArrowDown", "PageDown"],
-        jump_start: ["s"],
-        jump_end: ["e"],
-        toggle_approval: [2],
-        jump_graph: [0],
         enter_edit: ["Enter"],
         delete_char: ["Backspace"],
         escape_edit: ["Escape"],
@@ -74,11 +66,7 @@ let CONTROL = (global) => {
 
 
     p5.setup = () => {
-        versioning = new Versioning();
-        animator.clear();
         const canvas = p5.createCanvas(p5.windowWidth, p5.windowHeight);
-        windowWidth = p5.windowWidth;
-        windowHeight = p5.windowHeight;
         canvas.position(0, 0);
         p5.smooth();
         p5.frameRate(60);
@@ -89,8 +77,9 @@ let CONTROL = (global) => {
     }
 
     function startLevel1() {
+        reset_all();
         levelText = "Lv.1";
-        const text = "Version 1.0.0\nData 00001111\n";
+        const text = "Version 1.0.0\nData 00001111";
         node = new Node(undefined, UUID(), text, applyView(Vec(windowWidth / 4, windowHeight / 4)), true)
         versioning.addNode(node);
     }
@@ -98,7 +87,7 @@ let CONTROL = (global) => {
     function startLevel2() {
         reset_all();
         levelText = "Lv.2";
-        const text = "Version 2.0.0\nData 00001111\n";
+        const text = "Version 2.0.0\nData 00001111";
         node = new Node(undefined, UUID(), text, applyView(Vec(windowWidth / 4, windowHeight / 4)), true)
         versioning.addNode(node);
     }
@@ -213,7 +202,6 @@ let CONTROL = (global) => {
                 if (edge === undefined) {
                     if (reset_icon !== undefined && reset_icon.touches(mouse)) {
                         if (isIn(event.button, controls.press_button)) {
-                            reset_all();
                             startLevel1();
                             return;
                         }
@@ -428,6 +416,8 @@ let CONTROL = (global) => {
     }
 
     function reset_all() {
+        windowWidth = p5.windowWidth;
+        windowHeight = p5.windowHeight;
         versioning = new Versioning();
         animator.clear();
         view.alpha = 255;
