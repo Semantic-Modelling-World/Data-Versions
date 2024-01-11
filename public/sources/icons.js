@@ -28,12 +28,11 @@ const ICONS = (global) => {
 
 
     class HelpIcon {
-        constructor(img, vec, size, radius, versioning) {
+        constructor(img, vec, size, radius) {
             this.img = img;
             this.vec = vec;
             this.size = Vec(img.width * size, img.height * size);
             this.radius = radius;
-            this.versioning = versioning;
         }
 
         draw() {

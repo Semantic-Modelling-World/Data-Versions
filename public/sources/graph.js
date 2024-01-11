@@ -8,39 +8,24 @@ const GRAPH = (global) => {
     const applyView = global.applyView;
     const Text = global.Text;
 
-    // TODO: Handle bidirectional...
-
-    class Id {
-        constructor(predecessor, id) {
-            this.id = id;
-            this.successors = [];
-            this.addPredecessor(predecessor);
-        }
-
-        addPredecessor(predecessor) {
-            this.predecessor = predecessor;
-            if (predecessor !== undefined) {
-                predecessor.successors.push(this);
-            }
-        }
-    }
-
-    class Node extends Id {
+    class Node {
         static textPadding = Vec(15, 16);
         static minWidth = 70;
         static minHeight = (Text.textSize * 2 + Text.ySpacing + Node.textPadding.y * 2) / 2;
         static rounding = 10;
         static strokeWeight = 3;
 
-        constructor(predecessor, id, text, pos, immutable = false, minWidth = Node.minWidth, minHeight = Node.minHeight) {
-            super(predecessor, id);
+        constructor(text, pos, immutable = false, minWidth = Node.minWidth, minHeight = Node.minHeight) {
+            this.id = global.id++;
+            this.main = undefined;
+            this.edgeText = undefined;
+            this.subs = [];
             this.text = new Text(text);
             this.width = 0;  // half width
             this.height = 0;
             this.minWidth = minWidth;
             this.minHeight = minHeight;
             this.pos = pos;
-            this.selected = false;
             this.visible = true;
             this.immutable = immutable;
             this.resize();
@@ -48,15 +33,16 @@ const GRAPH = (global) => {
 
         copy() {
             const node = new Node();
-            node.predecessor = this.predecessor;
             node.id = this.id;
+            node.main = this.main;
+            node.edgeText = this.edgeText;
+            node.subs = this.subs.slice();
             node.text = this.text.copy();
             node.width = this.width;
             node.height = this.height;
             node.minWidth = this.minWidth;
             node.minHeight = this.minHeight;
             node.pos = this.pos;
-            node.selected = false;
             node.visible = true;
             node.immutable = this.immutable;
             return node;
@@ -95,7 +81,7 @@ const GRAPH = (global) => {
             if (!this.visible) {
                 return;
             }
-            if (this.selected) {
+            if (this) {
                 p5.stroke(ALPHA(COLORS["lightGrey"], view.alpha));
             } else {
                 p5.noStroke();
@@ -115,30 +101,27 @@ const GRAPH = (global) => {
     }
     global.Node = Node;
 
-    class Edge extends Id {
+    class Edge {
         static lineWidth = 3;
         static loopSize = 10;
         static triangle_height = 20;
         static triangle_width = 15;
         static touchWidth = 1.5;
 
-        constructor(predecessor, id, text, start, end) {
-            super(predecessor, id);
+        constructor(text, start, end) {
+            this.id = global.id++;
             this.text = new Text(text, false);
             this.start = start;
             this.end = end;
-            this.selected = false;
             this.visible = true;
         }
 
         copy() {
             const edge = new Edge();
-            edge.predecessor = this.predecessor;
             edge.id = this.id;
             edge.text = this.text.copy();
             edge.start = this.start;
             edge.end = this.end;
-            edge.selected = false;
             edge.visible = true;
             return edge;
         }
@@ -230,7 +213,7 @@ const GRAPH = (global) => {
                 const orthodiff = diff.orthogonal().normalized();
                 const left = bottom.plus(orthodiff.times(-width / 2));
                 const right = bottom.plus(orthodiff.times(width / 2));
-                if (this.selected) {
+                if (this) {
                     p5.fill(ALPHA(COLORS["lightGrey"], view.alpha));
                 } else {
                     p5.fill(ALPHA(COLORS["lightBlue"], view.alpha));
@@ -263,34 +246,11 @@ const GRAPH = (global) => {
     }
     global.Edge = Edge;
 
-    class Graph extends Id {
-        constructor(predecessor, id, nodes, edges) {
-            super(predecessor, id);
-            this.index = predecessor === undefined ? 0 : predecessor.index + 1;
-            const date = new Date();
-            this.timestamp = date.getFullYear() + "-" +
-                ("0" + (date.getMonth() + 1)).slice(-2) + "-" +
-                ("0" + date.getDate()).slice(-2) + "T" +
-                ("0" + date.getHours()).slice(-2) + ":" +
-                ("0" + date.getMinutes()).slice(-2) + ":" +
-                ("0" + date.getSeconds()).slice(-2);
-            this.approval = false;
-            this.nodes = nodes;
-            this.edges = edges;
+    class Graph {
+        constructor() {
+            this.nodes = [];
+            this.edges = [];
             this.bidirectional = {};
-            this.edges.forEach(edge => {
-                if (this.bidirectional[edge.start.id + edge.end.id] !== undefined) {
-                    this.bidirectional[edge.start.id + edge.end.id].push(edge);
-                    this.bidirectional[edge.end.id + edge.start.id].push(edge);
-                } else {
-                    this.bidirectional[edge.start.id + edge.end.id] = [edge];
-                    this.bidirectional[edge.end.id + edge.start.id] = [edge];
-                }
-            });
-        }
-
-        toggle_approval() {
-            this.approval = !this.approval;
         }
 
         touches_nodes(pos) {
@@ -323,6 +283,48 @@ const GRAPH = (global) => {
             for (let i = 0; i < this.nodes.length; i++) {
                 this.nodes[i].draw();
             }
+        }
+
+        addNode(node) {
+            node.id = global.id++;
+            this.nodes.push(node);
+        }
+
+        deleteNode(node) {
+            const nodes = [];
+            const edges = [];
+            for (let i = 0; i < this.nodes.length; i++) {
+                if (node.id !== this.nodes[i].id) {
+                    nodes.push(this.nodes[i]);
+                }
+            }
+            for (let i = 0; i < this.edges.length; i++) {
+                if (node.id !== this.edges[i].start.id && node.id !== this.edges[i].end.id) {
+                    edges.push(this.edges[i]);
+                }
+            }
+            this.nodes = nodes;
+            this.edges = edges;
+        }
+
+        addEdge(edge) {
+            for (let i = 0; i < this.edges.length; i++) {
+                if (edge.start.id === this.edges[i].start.id && edge.end.id === this.edges[i].end.id && edge.text.equals(this.edges[i].text)) {
+                    return;
+                }
+            }
+            edge.id = global.id++;
+            this.edges.push(edge);
+        }
+
+        deleteEdge(edge) {
+            const edges = [];
+            for (let i = 0; i < this.edges.length; i++) {
+                if (edge.id !== this.edges[i].id) {
+                    edges.push(this.edges[i]);
+                }
+            }
+            this.edges = edges;
         }
     }
     global.Graph = Graph;
