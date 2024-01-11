@@ -361,7 +361,7 @@ const RDF = (global) => {
             for (let i = 0; i < graph.edges.length; i++) {
                 const edge = graph.edges[i];
                 entries.push([":" + edge.id, EDGESTART, ":" + edge.start.id]);
-                entries.push([":" + edge.id, EDGELABEL, edge.text.getText()]);
+                entries.push([":" + edge.id, EDGELABEL, edge.text.getText()]); // should be texts now
                 entries.push([":" + edge.id, EDGEEND, ":" + edge.end.id]);
             }
             return new RDF(entries.map(entry => Entry.parse(entry)));

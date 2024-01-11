@@ -150,8 +150,8 @@ const TEXT = (global) => {
             return {x: maxWidth, y: height, rows: counter};
         }
 
-        draw(x, y) {
-            p5.textAlign(p5.LEFT, p5.TOP);
+        draw(x, y, vertical=p5.LEFT, horizontal=p5.TOP) {
+            p5.textAlign(vertical, horizontal);
             p5.noStroke();
             p5.textSize(this.textSize);
             p5.fill(ALPHA(this.textColor, view.alpha));
@@ -160,9 +160,14 @@ const TEXT = (global) => {
             let cursorY = y;
             let count = 0;
             let index = 0;
+            let maxWidth = 0;
             while (index <= this.text.length) {
                 const end = this.lineEnd(index);
                 const line = this.text.slice(index, end).join('');
+                const candidate = p5.textWidth(line);
+                if (candidate > maxWidth) {
+                    maxWidth = candidate;
+                }
                 if (this.cursor - index >= 0 && this.cursor - end <= 0) {
                     cursorX = x + p5.textWidth(this.text.slice(index, this.cursor).join(''));
                     cursorY = y;
@@ -177,6 +182,8 @@ const TEXT = (global) => {
                 p5.strokeWeight(this.cursorWidth);
                 p5.line(cursorX, cursorY, cursorX, cursorY + this.textSize);
             }
+            const height = count * this.textSize + (count - 1) * this.ySpacing;
+            return {x: maxWidth + x, y: height + y};
         }
     }
     global.Text = Text;

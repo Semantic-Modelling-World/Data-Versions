@@ -107,10 +107,11 @@ const GRAPH = (global) => {
         static triangle_height = 20;
         static triangle_width = 15;
         static touchWidth = 1.5;
+        static separator = new Text(", ");
 
         constructor(text, start, end) {
             this.id = global.id++;
-            this.text = new Text(text, false);
+            this.texts = [new Text(text, false)];
             this.start = start;
             this.end = end;
             this.visible = true;
@@ -119,7 +120,7 @@ const GRAPH = (global) => {
         copy() {
             const edge = new Edge();
             edge.id = this.id;
-            edge.text = this.text.copy();
+            edge.texts = this.texts.map(text => text.copy());
             edge.start = this.start;
             edge.end = this.end;
             edge.visible = true;
@@ -204,7 +205,14 @@ const GRAPH = (global) => {
             const width = Edge.triangle_width;
             const bottom = endBorder.minus(normdiff.times(height));
 
-            const textSizes = this.text.getSize();
+            let textSizes = {x: 0, y: 0};
+            for (let i = 0; i < this.texts.length; i++) {
+                const sizes = this.texts[i].getSize();
+                textSizes.x += sizes.x;
+                textSizes.y = sizes.y;
+            }
+            textSizes.x += Edge.separator.getSize().x * Math.max(0, this.texts.length - 1);
+
             const fadeWidth = Math.max(Edge.triangle_height, textSizes.x);
             const oldAlpha = view.alpha;
             view.alpha = distance < fadeWidth ? view.alpha * distance / fadeWidth : view.alpha;
@@ -239,7 +247,14 @@ const GRAPH = (global) => {
             let y = textSizes.y / 3;
             y = startBorder.x < endBorder.x ? - 4 * y : y;
             p5.translate(-textSizes.x / 2, y);
-            this.text.draw(0, 0);
+
+            let sizes = { x: 0, y: 0, rows: 0 };
+            for (let i = 0; i < this.texts.length; i++) {
+                sizes = this.texts[i].draw(sizes.x, 0);
+                if (this.texts.length > 1 && i + 1 !== this.texts.length) {
+                    sizes = Edge.separator.draw(sizes.x, 0);
+                }
+            }
             p5.pop();
             view.alpha = oldAlpha;
         }
@@ -309,7 +324,10 @@ const GRAPH = (global) => {
 
         addEdge(edge) {
             for (let i = 0; i < this.edges.length; i++) {
-                if (edge.start.id === this.edges[i].start.id && edge.end.id === this.edges[i].end.id && edge.text.equals(this.edges[i].text)) {
+                if (edge.start.id === this.edges[i].start.id && edge.end.id === this.edges[i].end.id) {
+                    for (let j = 0; j < edge.texts.length; j++) {
+                        this.edges[i].texts.push(edge.texts[j]);
+                    }
                     return;
                 }
             }
