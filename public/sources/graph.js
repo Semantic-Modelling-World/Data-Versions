@@ -15,7 +15,7 @@ const GRAPH = (global) => {
         static rounding = 10;
         static strokeWeight = 3;
 
-        constructor(text, pos, immutable = false, minWidth = Node.minWidth, minHeight = Node.minHeight) {
+        constructor(text, pos, minWidth = Node.minWidth, minHeight = Node.minHeight) {
             this.id = global.id++;
             this.main = undefined;
             this.edgeText = undefined;
@@ -26,8 +26,9 @@ const GRAPH = (global) => {
             this.minWidth = minWidth;
             this.minHeight = minHeight;
             this.pos = pos;
+            this.immutable = false;
             this.visible = true;
-            this.immutable = immutable;
+            this.selected = false;
             this.resize();
         }
 
@@ -43,8 +44,9 @@ const GRAPH = (global) => {
             node.minWidth = this.minWidth;
             node.minHeight = this.minHeight;
             node.pos = this.pos;
-            node.visible = true;
             node.immutable = this.immutable;
+            node.visible = true;
+            node.selected = false;
             return node;
         }
 
@@ -81,7 +83,7 @@ const GRAPH = (global) => {
             if (!this.visible) {
                 return;
             }
-            if (this) {
+            if (this.selected) {
                 p5.stroke(ALPHA(COLORS["lightGrey"], view.alpha));
             } else {
                 p5.noStroke();
@@ -115,6 +117,7 @@ const GRAPH = (global) => {
             this.start = start;
             this.end = end;
             this.visible = true;
+            this.selected = false;
         }
 
         copy() {
@@ -124,6 +127,7 @@ const GRAPH = (global) => {
             edge.start = this.start;
             edge.end = this.end;
             edge.visible = true;
+            edge.selected = false;
             return edge;
         }
 
@@ -159,14 +163,13 @@ const GRAPH = (global) => {
             return { start: start, end: end, distance: end.minus(start).distance() };
         }
 
-        touches(point, bidirectional) {
+        touches(point) {
             point = applyView(point);
             const { start: startBorder, end: endBorder, distance: distance } = this.getBorderPoints();
             if (distance <= 0) {
                 return false;
             }
 
-            const b = bidirectional[this.start.id + this.end.id];
             const diff = endBorder.minus(startBorder);
             const orthodiff = diff.orthogonal().normalized();
 
@@ -221,11 +224,7 @@ const GRAPH = (global) => {
                 const orthodiff = diff.orthogonal().normalized();
                 const left = bottom.plus(orthodiff.times(-width / 2));
                 const right = bottom.plus(orthodiff.times(width / 2));
-                if (this) {
-                    p5.fill(ALPHA(COLORS["lightGrey"], view.alpha));
-                } else {
-                    p5.fill(ALPHA(COLORS["lightBlue"], view.alpha));
-                }
+                p5.fill(ALPHA(COLORS["lightBlue"], view.alpha));
                 p5.noStroke();
                 p5.triangle(left.x, left.y, endBorder.x, endBorder.y, right.x, right.y);
                 view.alpha = oldAlpha;
@@ -265,7 +264,6 @@ const GRAPH = (global) => {
         constructor() {
             this.nodes = [];
             this.edges = [];
-            this.bidirectional = {};
         }
 
         touches_nodes(pos) {
@@ -281,7 +279,7 @@ const GRAPH = (global) => {
         touches_edges(pos) {
             let touching = [];
             for (let i = 0; i < this.edges.length; i++) {
-                if (this.edges[i].touches(pos, this.bidirectional)) {
+                if (this.edges[i].touches(pos)) {
                     touching.push(i);
                 }
             }

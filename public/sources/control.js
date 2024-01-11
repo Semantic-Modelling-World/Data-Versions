@@ -28,7 +28,6 @@ let CONTROL = (global) => {
     let windowWidth = 0;
     let windowHeight = 0;
     let holding = undefined;
-    let howering = [];
     let offset = Vec(0, 0);
     let node = undefined;
     let edge = undefined;
@@ -87,8 +86,8 @@ let CONTROL = (global) => {
         const text = "Version 1.0.0\nData 00001111";
         const node = new Node(
             text,
-            applyView(Vec(windowWidth / 4, windowHeight / 4)),
-            true)
+            applyView(Vec(windowWidth / 4, windowHeight / 4)))
+        node.immutable = true;
         node.main = node;
         graph.addNode(node);
     }
@@ -100,7 +99,6 @@ let CONTROL = (global) => {
         const uuid = new Node(
             text,
             applyView(Vec(windowWidth / 4, windowHeight / 4)),
-            false,
             Text.textSize * 2,
             (Text.textSize + Node.textPadding.y * 2) / 2);
         uuid.main = uuid;
@@ -110,9 +108,9 @@ let CONTROL = (global) => {
         let distance = Node.minHeight + uuid.height + Text.getWidth(BELONGSTO) * 2;
         const data = new Node(
             text,
-            applyView(Vec(windowWidth / 4, windowHeight / 4 + distance)),
-            true);
+            applyView(Vec(windowWidth / 4, windowHeight / 4 + distance)));
         data.main = uuid;
+        data.immutable = true;
         data.edgeText = BELONGSTO;
         graph.addNode(data);
         const belongsto = new Edge(BELONGSTO, uuid, data);
@@ -123,7 +121,6 @@ let CONTROL = (global) => {
         const driver = new Node(
             text,
             applyView(Vec(windowWidth / 4 - distance, windowHeight / 4 + distance)),
-            false,
             Text.textSize * 2,
             (Text.textSize + Node.textPadding.y * 2) / 2);
         driver.main = uuid;
@@ -137,7 +134,6 @@ let CONTROL = (global) => {
         const version = new Node(
             text,
             applyView(Vec(windowWidth / 4 + distance, windowHeight / 4 + distance)),
-            false,
             Text.textSize * 2,
             (Text.textSize + Node.textPadding.y * 2) / 2);
         version.main = uuid;
@@ -474,8 +470,6 @@ let CONTROL = (global) => {
 
     function reset() {
         holding = undefined;
-        howering.forEach(h => { h.selected = false });
-        howering = [];
         offset = Vec(0, 0);
         node = undefined;
         edge = undefined;
@@ -529,24 +523,11 @@ let CONTROL = (global) => {
             p5.resizeCanvas(p5.windowWidth, p5.windowHeight);
         }
 
-        const nodes = graph.nodes;
-        const edges = graph.edges;
         const mouse = Vec(p5.mouseX, p5.mouseY);
-        const touching_nodes = graph.touches_nodes(mouse);
-        const touching_edges = graph.touches_edges(mouse);
-        howering.forEach(h => { h.selected = false });
-        howering = [];
-        touching_nodes.forEach(t => {
-            const node = nodes[t];
-            node.selected = true;
-            howering.push(node);
-        });
-        if (touching_nodes.length === 0) {
-            touching_edges.forEach(t => {
-                const edge = edges[t];
-                edge.selected = true;
-                howering.push(edge);
-            });
+
+        for (let i = 0; i < graph.nodes.length; i++) {
+            const node = graph.nodes[i];
+            node.selected = node.touches(mouse);
         }
 
         animator.update();
