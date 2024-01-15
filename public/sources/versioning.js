@@ -1,9 +1,6 @@
 const VERSIONING = (global) => {
-    const p5 = global.p5;
-    const Vec = global.Vec;
     const UUID = global.UUID;
     const Graph = global.Graph;
-    const view = global.view;
 
     class Versioning {
         constructor() {

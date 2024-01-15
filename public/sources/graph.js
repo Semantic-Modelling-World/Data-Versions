@@ -105,10 +105,10 @@ const GRAPH = (global) => {
 
     class Edge {
         static lineWidth = 3;
+        static touchWidth = 3;
         static loopSize = 10;
         static triangle_height = 20;
         static triangle_width = 15;
-        static touchWidth = 1.5;
         static separator = new Text(", ");
 
         constructor(text, start, end) {
@@ -177,18 +177,33 @@ const GRAPH = (global) => {
             let p2 = undefined;
             let p3 = undefined;
             let p4 = undefined;
-            const width = Edge.triangle_width;
-            if (b !== undefined && b.length > 1) {
-                p1 = startBorder.plus(orthodiff.times(width * Edge.touchWidth));
-                p2 = startBorder;
-                p3 = endBorder.plus(orthodiff.times(width * Edge.touchWidth));
-                p4 = endBorder;
-            } else {
-                p1 = startBorder.plus(orthodiff.times(width * Edge.touchWidth));
-                p2 = startBorder.plus(orthodiff.times(width * -Edge.touchWidth));
-                p3 = endBorder.plus(orthodiff.times(width * Edge.touchWidth));
-                p4 = endBorder.plus(orthodiff.times(width * -Edge.touchWidth));
+            p1 = startBorder.plus(orthodiff.times(Edge.touchWidth / 2));
+            p2 = startBorder.plus(orthodiff.times(-Edge.touchWidth / 2));
+            p3 = endBorder.plus(orthodiff.times(Edge.touchWidth / 2));
+            p4 = endBorder.plus(orthodiff.times(-Edge.touchWidth / 2));
+
+            return TwoD.pointIntersectRect(point, p1, p2, p3, p4);
+        }
+
+        touches_text(point) {
+            point = applyView(point);
+            const { start: startBorder, end: endBorder, distance: distance } = this.getBorderPoints();
+            if (distance <= 0) {
+                return false;
             }
+
+            const diff = endBorder.minus(startBorder);
+            const orthodiff = diff.orthogonal().normalized();
+
+            let p1 = undefined;
+            let p2 = undefined;
+            let p3 = undefined;
+            let p4 = undefined;
+            const width = Edge.triangle_width;
+            p1 = startBorder.plus(orthodiff.times(width * Edge.touchWidth));
+            p2 = startBorder.plus(orthodiff.times(width * -Edge.touchWidth));
+            p3 = endBorder.plus(orthodiff.times(width * Edge.touchWidth));
+            p4 = endBorder.plus(orthodiff.times(width * -Edge.touchWidth));
 
             return TwoD.pointIntersectRect(point, p1, p2, p3, p4);
         }

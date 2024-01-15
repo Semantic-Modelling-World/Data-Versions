@@ -107,7 +107,7 @@ const UTILS = (global) => {
   const view = { alpha: 255, viewpoint: Vec(0, 0), scale: 1 };
   global.view = view;
 
-  global.applyView = (point, v) => {
+  global.applyView = (point, v) => { // for more advanced transformations use the Matrix library
     if (v === undefined) {
       v = view;
     }

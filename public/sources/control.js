@@ -20,6 +20,8 @@ let CONTROL = (global) => {
     const unapplyView = global.unapplyView;
     const TwoD = global.TwoD
     const Text = global.Text;
+    const canvas = global.canvas;
+    const Mat = global.Mat;
 
     let graph = undefined;
     let keyChecks = [];
@@ -49,7 +51,7 @@ let CONTROL = (global) => {
         edit_node: [2],
         delete_node: [1],
         create_edge: [2],
-        move_edge: [0],
+        // move_edge: [0],
         edit_edge: [2],
         delete_edge: [1],
         move_graph: [2],
@@ -67,83 +69,6 @@ let CONTROL = (global) => {
         press_button: [0],
         zoom: ["MouseWheel"]
     };
-
-
-    p5.setup = () => {
-        const canvas = p5.createCanvas(p5.windowWidth, p5.windowHeight);
-        canvas.position(0, 0);
-        p5.smooth();
-        p5.frameRate(60);
-        p5.loadImage('assets/reload.png', img => {
-            reset_icon = new ResetIcon(img, Vec(10, 10), 1 / 2.5, 17);
-        });
-        startLevel1();
-    }
-
-    function startLevel1() {
-        reset_all();
-        levelText = "Lv.1";
-        const text = "Version 1.0.0\nData 00001111";
-        const node = new Node(
-            text,
-            applyView(Vec(windowWidth / 4, windowHeight / 4)))
-        node.immutable = true;
-        node.main = node;
-        graph.addNode(node);
-    }
-
-    function startLevel2() {
-        reset_all();
-        levelText = "Lv.2";
-        let text = UUID();
-        const uuid = new Node(
-            text,
-            applyView(Vec(windowWidth / 4, windowHeight / 4)),
-            Text.textSize * 2,
-            (Text.textSize + Node.textPadding.y * 2) / 2);
-        uuid.main = uuid;
-        graph.addNode(uuid);
-
-        text = "Version 1.0.0\nData 00001111";
-        let distance = Node.minHeight + uuid.height + Text.getWidth(BELONGSTO) * 2;
-        const data = new Node(
-            text,
-            applyView(Vec(windowWidth / 4, windowHeight / 4 + distance)));
-        data.main = uuid;
-        data.immutable = true;
-        data.edgeText = BELONGSTO;
-        graph.addNode(data);
-        const belongsto = new Edge(BELONGSTO, uuid, data);
-        graph.addEdge(belongsto);
-
-        distance = Node.minHeight + uuid.height + Text.getWidth(NAME) * 2.5;
-        text = "Sensor Driver";
-        const driver = new Node(
-            text,
-            applyView(Vec(windowWidth / 4 - distance, windowHeight / 4 + distance)),
-            Text.textSize * 2,
-            (Text.textSize + Node.textPadding.y * 2) / 2);
-        driver.main = uuid;
-        driver.edgeText = NAME;
-        graph.addNode(driver);
-        const name = new Edge(NAME, uuid, driver);
-        graph.addEdge(name);
-
-        distance = Node.minHeight + uuid.height + Text.getWidth(VERSION) * 2;
-        text = "1.0.0"
-        const version = new Node(
-            text,
-            applyView(Vec(windowWidth / 4 + distance, windowHeight / 4 + distance)),
-            Text.textSize * 2,
-            (Text.textSize + Node.textPadding.y * 2) / 2);
-        version.main = uuid;
-        version.edgeText = VERSION;
-        graph.addNode(version);
-        const versionEdge = new Edge(VERSION, uuid, version);
-        graph.addEdge(versionEdge);
-
-        uuid.subs = [data, driver, version];
-    }
 
     function isIn(el, ls) {
         for (let i = 0; i < ls.length; i++) {
@@ -163,9 +88,9 @@ let CONTROL = (global) => {
         }
         const mouse = Vec(p5.mouseX, p5.mouseY);
         const nodes = graph.nodes;
-        const edges = graph.edges;
         const touching_nodes = graph.touches_nodes(mouse);
-        const touching_edges = graph.touches_edges(mouse);
+        // const edges = graph.edges;
+        // const touching_edges = graph.touches_edges(mouse);
         const touching_reset = reset_icon !== undefined && reset_icon.touches(mouse);
         const touching_help = help_icon !== undefined && help_icon.touches(mouse);
 
@@ -189,29 +114,29 @@ let CONTROL = (global) => {
                         dummy: true
                     });
             }
-        } else if (touching_edges.length > 0) {
-            if (isIn(event.button, controls.move_edge)) {
-                originalEdge = edges[touching_edges[touching_edges.length - 1]];
-                originalEdge.visible = false;
-                edge = originalEdge.copy();
-                edge.visible = true;
-                const { start: startBorder, end: endBorder, distance: distance } = edge.getBorderPoints();
-                const relativeMouse = applyView(mouse);
-                const dummy =
-                {
-                    pos: mouse,
-                    width: 0,
-                    height: 0,
-                    id: global.id++,
-                    dummy: true
-                };
-                if (relativeMouse.minus(startBorder).distance() < relativeMouse.minus(endBorder).distance()) {
-                    edge.start = dummy;
-                } else {
-                    edge.end = dummy;
-                }
-                offset = Vec(0, 0);
-            }
+            /* } else if (touching_edges.length > 0) {
+                 if (isIn(event.button, controls.move_edge)) {
+                    originalEdge = edges[touching_edges[touching_edges.length - 1]];
+                    originalEdge.visible = false;
+                    edge = originalEdge.copy();
+                    edge.visible = true;
+                    const { start: startBorder, end: endBorder, distance: distance } = edge.getBorderPoints();
+                    const relativeMouse = applyView(mouse);
+                    const dummy =
+                    {
+                        pos: mouse,
+                        width: 0,
+                        height: 0,
+                        id: global.id++,
+                        dummy: true
+                    };
+                    if (relativeMouse.minus(startBorder).distance() < relativeMouse.minus(endBorder).distance()) {
+                        edge.start = dummy;
+                    } else {
+                        edge.end = dummy;
+                    }
+                    offset = Vec(0, 0);
+                }*/
         } else {
             /*if (isIn(event.button, controls.create_node)) {
                 const text = "Version 1.0.0\nData 00001111\n";
@@ -420,6 +345,7 @@ let CONTROL = (global) => {
                         mainCopy.main = mainCopy;
                     } else {
                         mainCopy = mainNode.copy();
+                        mainCopy.text = new Text(UUID());
                     }
                     const subs = mainNode.subs;
                     const subsCopy = [];
@@ -533,6 +459,7 @@ let CONTROL = (global) => {
         animator.update();
 
         p5.push();
+        Mat.reset();
         p5.translate(p5.windowWidth / 2, p5.windowHeight / 2);
         p5.scale(view.scale);
         p5.translate(-p5.windowWidth / 2, -p5.windowHeight / 2);
@@ -553,6 +480,7 @@ let CONTROL = (global) => {
         if (editNode !== undefined) {
             editNode.draw();
         }
+        Mat.reset();
         p5.pop();
 
         p5.textAlign(p5.RIGHT, p5.TOP);
@@ -576,6 +504,83 @@ let CONTROL = (global) => {
         })
         keyChecks = nextKeyChecks;
     }
+
+    function startLevel1() {
+        reset_all();
+        levelText = "Lv.1";
+        const text = "Version 1.0.0\nData 00001111";
+        const node = new Node(
+            text,
+            applyView(Vec(windowWidth / 4, windowHeight / 4)))
+        node.immutable = true;
+        node.main = node;
+        graph.addNode(node);
+    }
+
+    function startLevel2() {
+        reset_all();
+        levelText = "Lv.2";
+        let text = UUID();
+        const uuid = new Node(
+            text,
+            applyView(Vec(windowWidth / 4, windowHeight / 4)),
+            Text.textSize * 2,
+            (Text.textSize + Node.textPadding.y * 2) / 2);
+        uuid.main = uuid;
+        graph.addNode(uuid);
+
+        text = "Data 00001111";
+        let distance = Node.minHeight + uuid.height + Text.getWidth(BELONGSTO) * 2;
+        const data = new Node(
+            text,
+            applyView(Vec(windowWidth / 4, windowHeight / 4 + distance)));
+        data.main = uuid;
+        data.immutable = true;
+        data.edgeText = BELONGSTO;
+        graph.addNode(data);
+        const belongsto = new Edge(BELONGSTO, uuid, data);
+        graph.addEdge(belongsto);
+
+        distance = Node.minHeight + uuid.height + Text.getWidth(NAME) * 2.5;
+        text = "Sensor Driver";
+        const driver = new Node(
+            text,
+            applyView(Vec(windowWidth / 4 - distance, windowHeight / 4 + distance)),
+            Text.textSize * 2,
+            (Text.textSize + Node.textPadding.y * 2) / 2);
+        driver.main = uuid;
+        driver.edgeText = NAME;
+        graph.addNode(driver);
+        const name = new Edge(NAME, uuid, driver);
+        graph.addEdge(name);
+
+        distance = Node.minHeight + uuid.height + Text.getWidth(VERSION) * 2;
+        text = "1.0.0"
+        const version = new Node(
+            text,
+            applyView(Vec(windowWidth / 4 + distance, windowHeight / 4 + distance)),
+            Text.textSize * 2,
+            (Text.textSize + Node.textPadding.y * 2) / 2);
+        version.main = uuid;
+        version.edgeText = VERSION;
+        graph.addNode(version);
+        const versionEdge = new Edge(VERSION, uuid, version);
+        graph.addEdge(versionEdge);
+
+        uuid.subs = [data, driver, version];
+    }
+
+    p5.setup = () => {
+        canvas.position(0, 0);
+        p5.resizeCanvas(p5.windowWidth, p5.windowHeight);
+        p5.smooth();
+        p5.frameRate(60);
+        p5.loadImage('assets/reload.png', img => {
+            reset_icon = new ResetIcon(img, Vec(10, 10), 1 / 2.5, 17);
+        });
+    }
+
+    startLevel1();
 }
 
 export { CONTROL };
