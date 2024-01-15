@@ -327,13 +327,27 @@ const GRAPH = (global) => {
 
         findNode(node) {
             for (let i = 0; i < this.nodes.length; i++) {
-                if (node.text.equals(this.nodes[i].text)) {
+                if (node.id !== this.nodes[i].id && node.text.equals(this.nodes[i].text)) {
                     if (node.mutable === this.nodes[i].mutable && node.editable === this.nodes[i].editable) {
                         return this.nodes[i];
                     }
                 }
             }
             return undefined;
+        }
+
+        findConnectedEdges(node) {
+            const startEdges = [];
+            const endEdges = [];
+            for (let i = 0; i < this.edges.length; i++) {
+                if (node.id === this.edges[i].start.id) {
+                    startEdges.push(this.edges[i]);
+                }
+                if (node.id === this.edges[i].end.id) {
+                    endEdges.push(this.edges[i]);
+                }
+            }
+            return { start: startEdges, end: endEdges};
         }
 
         deleteNode(node) {

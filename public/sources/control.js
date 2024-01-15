@@ -296,7 +296,33 @@ let CONTROL = (global) => {
         const originalPos = unapplyView(copy.pos);
         const originalView = { ...view };
         const node = copy;
-        const ani = new Animation(f => { node.pos = applyView(originalPos, originalView).plus(vec.times(f)) }, node);
+
+
+        const ani = new Animation(f => { node.pos = applyView(originalPos, originalView).plus(vec.times(f)) }, node, () => {
+            let equalNode = graph.findNode(copy);
+            if (equalNode !== undefined && !equalNode.mutable) {
+                const vec_ = equalNode.pos.minus(node.pos);
+                const originalPos_ = unapplyView(node.pos);
+                const originalView_ = { ...view };
+                const node_ = node;
+                const callback_ = () => {
+                    const edges = graph.findConnectedEdges(node_);
+                    for (let i = 0; i < edges.start.length; i++) {
+                        const e = edges.start[i].copy();
+                        e.start = equalNode;
+                        graph.addEdge(e);
+                    }
+                    for (let i = 0; i < edges.end.length; i++) {
+                        const e = edges.end[i].copy();
+                        e.end = equalNode;
+                        graph.addEdge(e);
+                    }
+                    graph.deleteNode(node_);
+                }
+                const ani_ = new Animation(f => { node_.pos = applyView(originalPos_, originalView_).plus(vec_.times(f)) }, node_, callback_);
+                animator.animate.push(ani_);
+            }
+        });
         animator.animate.push(ani);
     }
 
@@ -327,13 +353,7 @@ let CONTROL = (global) => {
                         }
                     }
                     mainCopy.subs = subsCopy;
-                    const equalNode = graph.findNode(mainCopy);
-                    console.log(equalNode)
-                    if (equalNode !== undefined && !equalNode.mutable) {
-                        mainCopy = equalNode;
-                    } else {
-                        graph.addNode(mainCopy);
-                    }
+                    graph.addNode(mainCopy);
 
                     const predecessor = new Edge(PREDECESSOR, mainCopy, mainNode);
                     graph.addEdge(predecessor);
@@ -346,23 +366,14 @@ let CONTROL = (global) => {
                     const inter = Math.random() - 0.5;
                     vec = vec.normalized().times(1 - inter).plus(orth.times(inter)).normalized().times(length);
 
-                    if (!(equalNode !== undefined && !equalNode.mutable)) {
-                        spawn_copy(mainCopy, vec);
-                    }
+                    spawn_copy(mainCopy, vec);
 
                     for (let i = 0; i < subs.length; i++) {
-                        const equalNode = graph.findNode(subsCopy[i]);
-                        if (equalNode !== undefined && !equalNode.mutable) {
-                            subsCopy[i] = equalNode;
-                        } else {
-                            graph.addNode(subsCopy[i]);
-                        }
+                        graph.addNode(subsCopy[i]);
                         subsCopy[i].main = mainCopy;
                         const subEdge = new Edge(subsCopy[i].edgeText, mainCopy, subsCopy[i]);
                         graph.addEdge(subEdge);
-                        if (!(equalNode !== undefined && !equalNode.mutable)) {
-                            spawn_copy(subsCopy[i], vec);
-                        }
+                        spawn_copy(subsCopy[i], vec);
                     }
                 } else {
                     originalEditNode.text = editNode.text;
