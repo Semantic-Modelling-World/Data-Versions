@@ -43,7 +43,8 @@ let CONTROL = (global) => {
     let edit_icon = undefined;
     let levelTextSize = 32;
     let levelTextPadding = Vec(20, 20);
-    let levelText = "Lv.1";
+    let levelText = "Lv.";
+    let level = "1";
     let controls = {
         move_node: [0],
         edit_node: [2],
@@ -151,21 +152,28 @@ let CONTROL = (global) => {
                 if (edge === undefined) {
                     if (reset_icon !== undefined && reset_icon.touches(mouse)) {
                         if (isIn(event.button, controls.press_button)) {
-                            startLevel1();
-                            return;
+                            return startLevel1();
                         }
                     } else {
                         if (isIn(event.button, controls.press_button)) {
                             p5.textSize(levelTextSize);
                             p5.noStroke();
-                            const w = p5.textWidth(levelText);
+                            const w = p5.textWidth(levelText + level);
                             const h = levelTextSize;
                             const p2 = Vec(p5.windowWidth - levelTextPadding.x, levelTextPadding.y);
                             const p1 = p2.plus(Vec(-w, 0));
                             const p3 = p2.plus(Vec(0, h));
                             const p4 = p2.plus(Vec(-w, h));
                             if (TwoD.pointIntersectRect(mouse, p1, p2, p3, p4)) {
-                                return startLevel2();
+                                if (level === "1") {
+                                    return startLevel2();
+                                } else if (level === "2") {
+                                    return startLevel3();
+                                } else if (level === "3") {
+                                    return startLevel4();
+                                } else if (level === "4") {
+                                    return startLevel1();
+                                }
                             }
                         }
                     }
@@ -297,7 +305,6 @@ let CONTROL = (global) => {
         const originalView = { ...view };
         const node = copy;
 
-
         const ani = new Animation(f => { node.pos = applyView(originalPos, originalView).plus(vec.times(f)) }, node, () => {
             let equalNode = graph.findNode(copy);
             if (equalNode !== undefined && !equalNode.mutable) {
@@ -338,10 +345,13 @@ let CONTROL = (global) => {
                         mainCopy.main = mainCopy;
                     } else {
                         mainCopy = mainNode.copy();
-                        await hash(editNode.text.getText()).then(hashed => {
-                            mainCopy.text = new Text(hashed.substring(0, 8));
-                        });
-                        // mainCopy.text = new Text(UUID());
+                        if (level === "3") {
+                            mainCopy.text = new Text(UUID());
+                        } else if (level === "4") {
+                            await hash(editNode.text.getText()).then(hashed => {
+                                mainCopy.text = new Text(hashed.substring(0, 8));
+                            });
+                        }
                     }
                     const subs = mainNode.subs;
                     const subsCopy = [];
@@ -479,7 +489,7 @@ let CONTROL = (global) => {
         p5.fill(COLORS["black"])
         p5.textSize(levelTextSize);
         p5.noStroke();
-        p5.text(levelText, p5.windowWidth - levelTextPadding.x, levelTextPadding.y);
+        p5.text(levelText + level, p5.windowWidth - levelTextPadding.x, levelTextPadding.y);
 
         if (reset_icon !== undefined) {
             reset_icon.draw();
@@ -503,8 +513,8 @@ let CONTROL = (global) => {
 
     function startLevel1() {
         reset_all();
-        levelText = "Lv.1";
-        const text = "Sensor Driver\n1.0.0\n00110011110";
+        level = "1";
+        const text = "Label: Sensor Driver\nVersion: 1.0.0\nData: 00110011110";
         const node = new Node(
             text,
             applyView(Vec(windowWidth / 4, windowHeight / 4)),
@@ -517,7 +527,34 @@ let CONTROL = (global) => {
 
     function startLevel2() {
         reset_all();
-        levelText = "Lv.2";
+        level = "2";
+        let text = "Sensor-Driver-1.0.0";
+        const uuid = new Node(
+            text,
+            applyView(Vec(windowWidth / 4, windowHeight / 4)),
+            Text.textSize * 2,
+            (Text.textSize + Node.textPadding.y * 2) / 2);
+        uuid.main = uuid;
+        graph.addNode(uuid);
+
+        text = "00110011110";
+        let distance = Node.minHeight + uuid.height + Text.getWidth(BELONGSTO) * 2;
+        const data = new Node(
+            text,
+            applyView(Vec(windowWidth / 4, windowHeight / 4 + distance)));
+        data.main = uuid;
+        data.mutable = false;
+        data.edgeText = BELONGSTO;
+        graph.addNode(data);
+        const belongsto = new Edge(BELONGSTO, uuid, data);
+        graph.addEdge(belongsto);
+
+        uuid.subs = [data];
+    }
+
+    function startLevel3Or4(lvl) {
+        reset_all();
+        level = lvl;
         let text = UUID();
         const uuid = new Node(
             text,
@@ -541,9 +578,11 @@ let CONTROL = (global) => {
         const belongsto = new Edge(BELONGSTO, uuid, data);
         graph.addEdge(belongsto);
 
-        hash(text).then(hashed => {
-            uuid.text = new Text(hashed.substring(0, 8));
-        });
+        if (lvl === "4") {
+            hash(text).then(hashed => {
+                uuid.text = new Text(hashed.substring(0, 8));
+            });
+        }
 
         distance = Node.minHeight + uuid.height + Text.getWidth(LABEL) * 2.5;
         text = "Sensor Driver";
@@ -572,6 +611,14 @@ let CONTROL = (global) => {
         graph.addEdge(versionEdge);
 
         uuid.subs = [data, driver, version];
+    }
+
+    function startLevel3() {
+        startLevel3Or4("3");
+    }
+
+    function startLevel4() {
+        startLevel3Or4("4");
     }
 
     p5.setup = () => {
