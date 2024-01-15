@@ -48,7 +48,7 @@ let CONTROL = (global) => {
     let controls = {
         move_node: [0],
         edit_node: [2],
-        delete_node: [1],
+        delete_node: [], // [1],
         create_edge: [2],
         edit_edge: [2],
         delete_edge: [1],
@@ -224,14 +224,18 @@ let CONTROL = (global) => {
             } else if (touching_edges.length > 0) {
                 if (isIn(event.button, controls.delete_edge)) {
                     const edge = edges[touching_edges[touching_edges.length - 1]];
-                    graph.deleteEdge(edge);
+                    if (edge.mutable) {
+                        graph.deleteEdge(edge);
+                    }
                 } else if (isIn(event.button, controls.edit_edge)) {
                     originalEditEdge = edges[touching_edges[touching_edges.length - 1]];
-                    originalEditEdge.visible = false;
-                    editEdge = originalEditEdge.copy();
-                    editEdge.visibile = true;
-                    editEdge.text.setEdit(true);
-                    editEdge.text.setCursor(-1);
+                    if (originalEditEdge.editable) {
+                        originalEditEdge.visible = false;
+                        editEdge = originalEditEdge.copy();
+                        editEdge.visibile = true;
+                        editEdge.text.setEdit(true);
+                        editEdge.text.setCursor(-1);
+                    }
                 }
             }
         }
@@ -382,6 +386,10 @@ let CONTROL = (global) => {
                         graph.addNode(subsCopy[i]);
                         subsCopy[i].main = mainCopy;
                         const subEdge = new Edge(subsCopy[i].edgeText, mainCopy, subsCopy[i]);
+                        if (subsCopy[i].edgeText === BELONGSTO) {
+                            subEdge.mutable = false;
+                            subEdge.editable = false;
+                        }
                         graph.addEdge(subEdge);
                         spawn_copy(subsCopy[i], vec);
                     }
@@ -547,6 +555,8 @@ let CONTROL = (global) => {
         data.edgeText = BELONGSTO;
         graph.addNode(data);
         const belongsto = new Edge(BELONGSTO, uuid, data);
+        belongsto.editable = false;
+        belongsto.mutable = false;
         graph.addEdge(belongsto);
 
         uuid.subs = [data];
@@ -576,6 +586,8 @@ let CONTROL = (global) => {
         data.edgeText = BELONGSTO;
         graph.addNode(data);
         const belongsto = new Edge(BELONGSTO, uuid, data);
+        belongsto.editable = false;
+        belongsto.mutable = false;
         graph.addEdge(belongsto);
 
         if (lvl === "4") {

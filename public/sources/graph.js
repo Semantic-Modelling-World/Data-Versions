@@ -121,6 +121,8 @@ const GRAPH = (global) => {
             this.end = end;
             this.visible = true;
             this.selected = false;
+            this.mutable = true;
+            this.editable = true;
         }
 
         copy() {
@@ -131,6 +133,8 @@ const GRAPH = (global) => {
             edge.end = this.end;
             edge.visible = true;
             edge.selected = false;
+            edge.mutable = this.mutable;
+            edge.editable = this.editable;
             return edge;
         }
 
