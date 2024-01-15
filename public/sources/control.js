@@ -9,7 +9,7 @@ let CONTROL = (global) => {
     const PREDECESSOR = "predecessor";
     const SUCCESSOR = "successor";
     const BELONGSTO = "belongs to";
-    const NAME = "name";
+    const LABEL = "label";
     const VERSION = "version";
     const UUID = global.UUID;
     const COLORS = global.COLORS;
@@ -41,17 +41,14 @@ let CONTROL = (global) => {
     let changeViewpoint = false;
     let reset_icon = undefined;
     let edit_icon = undefined;
-    let help_icon = undefined;
     let levelTextSize = 32;
     let levelTextPadding = Vec(20, 20);
     let levelText = "Lv.1";
     let controls = {
-        // create_node: [0],
         move_node: [0],
         edit_node: [2],
         delete_node: [1],
         create_edge: [2],
-        // move_edge: [0],
         edit_edge: [2],
         delete_edge: [1],
         move_graph: [2],
@@ -89,12 +86,9 @@ let CONTROL = (global) => {
         const mouse = Vec(p5.mouseX, p5.mouseY);
         const nodes = graph.nodes;
         const touching_nodes = graph.touches_nodes(mouse);
-        // const edges = graph.edges;
-        // const touching_edges = graph.touches_edges(mouse);
         const touching_reset = reset_icon !== undefined && reset_icon.touches(mouse);
-        const touching_help = help_icon !== undefined && help_icon.touches(mouse);
 
-        if (touching_reset || touching_help) {
+        if (touching_reset) {
         } else if (touching_nodes.length > 0) {
             if (isIn(event.button, controls.move_node)) {
                 holding = nodes[touching_nodes[touching_nodes.length - 1]];
@@ -114,35 +108,7 @@ let CONTROL = (global) => {
                         dummy: true
                     });
             }
-            /* } else if (touching_edges.length > 0) {
-                 if (isIn(event.button, controls.move_edge)) {
-                    originalEdge = edges[touching_edges[touching_edges.length - 1]];
-                    originalEdge.visible = false;
-                    edge = originalEdge.copy();
-                    edge.visible = true;
-                    const { start: startBorder, end: endBorder, distance: distance } = edge.getBorderPoints();
-                    const relativeMouse = applyView(mouse);
-                    const dummy =
-                    {
-                        pos: mouse,
-                        width: 0,
-                        height: 0,
-                        id: global.id++,
-                        dummy: true
-                    };
-                    if (relativeMouse.minus(startBorder).distance() < relativeMouse.minus(endBorder).distance()) {
-                        edge.start = dummy;
-                    } else {
-                        edge.end = dummy;
-                    }
-                    offset = Vec(0, 0);
-                }*/
         } else {
-            /*if (isIn(event.button, controls.create_node)) {
-                const text = "Version 1.0.0\nData 00001111\n";
-                node = new Node(text, applyView(mouse), true)
-                graph.addNode(node);
-            } else*/
             if (isIn(event.button, controls.move_graph)) {
                 changeViewpoint = true
                 offset = view.viewpoint.times(view.scale).minus(mouse);
@@ -188,21 +154,19 @@ let CONTROL = (global) => {
                             startLevel1();
                             return;
                         }
-                    } else if (help_icon !== undefined && help_icon.touches(mouse)) {
-                        if (isIn(event.button, controls.press_button)) {
-                            // TODO
-                        }
                     } else {
-                        p5.textSize(levelTextSize);
-                        p5.noStroke();
-                        const w = p5.textWidth(levelText);
-                        const h = levelTextSize;
-                        const p2 = Vec(p5.windowWidth - levelTextPadding.x, levelTextPadding.y);
-                        const p1 = p2.plus(Vec(-w, 0));
-                        const p3 = p2.plus(Vec(0, h));
-                        const p4 = p2.plus(Vec(-w, h));
-                        if (TwoD.pointIntersectRect(mouse, p1, p2, p3, p4)) {
-                            return startLevel2();
+                        if (isIn(event.button, controls.press_button)) {
+                            p5.textSize(levelTextSize);
+                            p5.noStroke();
+                            const w = p5.textWidth(levelText);
+                            const h = levelTextSize;
+                            const p2 = Vec(p5.windowWidth - levelTextPadding.x, levelTextPadding.y);
+                            const p1 = p2.plus(Vec(-w, 0));
+                            const p3 = p2.plus(Vec(0, h));
+                            const p4 = p2.plus(Vec(-w, h));
+                            if (TwoD.pointIntersectRect(mouse, p1, p2, p3, p4)) {
+                                return startLevel2();
+                            }
                         }
                     }
                 }
@@ -214,6 +178,7 @@ let CONTROL = (global) => {
                         if (edge.start.id !== edge.end.id) {
                             graph.addEdge(edge);
                         }
+                        editEdge = undefined;
                     } else if (isIn(event.button, controls.move_edge)) {
                         const other = nodes[touching_nodes[touching_nodes.length - 1]];
                         if (edge.end.dummy !== undefined) {
@@ -234,15 +199,17 @@ let CONTROL = (global) => {
                     graph.deleteNode(node);
                 } else if (isIn(event.button, controls.edit_node)) {
                     originalEditNode = nodes[touching_nodes[touching_nodes.length - 1]];
-                    const row = originalEditNode.touches_row(offsetMouse);
-                    if (edge === undefined || edge.start.id === originalEditNode.id) {
-                        originalEditNode.visible = false;
-                        editNode = originalEditNode.copy();
-                        editNode.visibile = true;
-                        editNode.text.setEdit(true);
-                        editNode.text.setCursor(0);
-                        if (editNode.text.findCursorRepeat("\n", 1, row + 1)) {
-                            editNode.text.moveCursor(-1);
+                    if (originalEditNode.editable) {
+                        const row = originalEditNode.touches_row(offsetMouse);
+                        if (edge === undefined || edge.start.id === originalEditNode.id) {
+                            originalEditNode.visible = false;
+                            editNode = originalEditNode.copy();
+                            editNode.visibile = true;
+                            editNode.text.setEdit(true);
+                            editNode.text.setCursor(0);
+                            if (editNode.text.findCursorRepeat("\n", 1, row + 1)) {
+                                editNode.text.moveCursor(-1);
+                            }
                         }
                     }
                 }
@@ -333,11 +300,11 @@ let CONTROL = (global) => {
         animator.animate.push(ani);
     }
 
-    function set_edit() {
+    async function set_edit() {
         if (editNode !== undefined) {
             if (!editNode.text.equals(originalEditNode.text)) {
                 editNode.text.setEdit(false);
-                if (editNode.immutable) {
+                if (!editNode.mutable) {
                     const mainNode = editNode.main;
                     let mainCopy = undefined;
                     if (editNode.id === mainNode.id) {
@@ -345,7 +312,10 @@ let CONTROL = (global) => {
                         mainCopy.main = mainCopy;
                     } else {
                         mainCopy = mainNode.copy();
-                        mainCopy.text = new Text(UUID());
+                        await hash(editNode.text.getText()).then(hashed => {
+                            mainCopy.text = new Text(hashed.substring(0, 8));
+                        });
+                        // mainCopy.text = new Text(UUID());
                     }
                     const subs = mainNode.subs;
                     const subsCopy = [];
@@ -355,11 +325,16 @@ let CONTROL = (global) => {
                         } else {
                             subsCopy.push(subs[i].copy());
                         }
-                        subsCopy[i].main = mainCopy;
                     }
                     mainCopy.subs = subsCopy;
+                    const equalNode = graph.findNode(mainCopy);
+                    console.log(equalNode)
+                    if (equalNode !== undefined && !equalNode.mutable) {
+                        mainCopy = equalNode;
+                    } else {
+                        graph.addNode(mainCopy);
+                    }
 
-                    graph.addNode(mainCopy);
                     const predecessor = new Edge(PREDECESSOR, mainCopy, mainNode);
                     graph.addEdge(predecessor);
                     const successor = new Edge(SUCCESSOR, mainNode, mainCopy);
@@ -371,14 +346,23 @@ let CONTROL = (global) => {
                     const inter = Math.random() - 0.5;
                     vec = vec.normalized().times(1 - inter).plus(orth.times(inter)).normalized().times(length);
 
-                    spawn_copy(mainCopy, vec);
-
+                    if (!(equalNode !== undefined && !equalNode.mutable)) {
+                        spawn_copy(mainCopy, vec);
+                    }
 
                     for (let i = 0; i < subs.length; i++) {
-                        graph.addNode(subsCopy[i]);
+                        const equalNode = graph.findNode(subsCopy[i]);
+                        if (equalNode !== undefined && !equalNode.mutable) {
+                            subsCopy[i] = equalNode;
+                        } else {
+                            graph.addNode(subsCopy[i]);
+                        }
+                        subsCopy[i].main = mainCopy;
                         const subEdge = new Edge(subsCopy[i].edgeText, mainCopy, subsCopy[i]);
                         graph.addEdge(subEdge);
-                        spawn_copy(subsCopy[i], vec);
+                        if (!(equalNode !== undefined && !equalNode.mutable)) {
+                            spawn_copy(subsCopy[i], vec);
+                        }
                     }
                 } else {
                     originalEditNode.text = editNode.text;
@@ -406,9 +390,6 @@ let CONTROL = (global) => {
         changeViewpoint = false;
         if (edit_icon !== undefined) {
             edit_icon.graph = graph;
-        }
-        if (help_icon !== undefined) {
-            help_icon.graph = graph;
         }
     }
 
@@ -492,9 +473,6 @@ let CONTROL = (global) => {
         if (reset_icon !== undefined) {
             reset_icon.draw();
         }
-        if (help_icon !== undefined) {
-            help_icon.draw();
-        }
 
         const nextKeyChecks = [];
         keyChecks.forEach(keyCheck => {
@@ -505,14 +483,23 @@ let CONTROL = (global) => {
         keyChecks = nextKeyChecks;
     }
 
+    async function hash(string) {
+        const encoded = new TextEncoder().encode(string);
+        return crypto.subtle.digest('SHA-256', encoded).then((buffer) => {
+            return Array.from(new Uint8Array(buffer)).map((bytes) => bytes.toString(16).padStart(2, '0')).join('');
+        });
+    }
+
     function startLevel1() {
         reset_all();
         levelText = "Lv.1";
-        const text = "Version 1.0.0\nData 00001111";
+        const text = "Sensor Driver\n1.0.0\n00110011110";
         const node = new Node(
             text,
-            applyView(Vec(windowWidth / 4, windowHeight / 4)))
-        node.immutable = true;
+            applyView(Vec(windowWidth / 4, windowHeight / 4)),
+            Text.textSize * 2,
+            (Text.textSize + Node.textPadding.y * 2) / 2);
+        node.mutable = false;
         node.main = node;
         graph.addNode(node);
     }
@@ -527,21 +514,27 @@ let CONTROL = (global) => {
             Text.textSize * 2,
             (Text.textSize + Node.textPadding.y * 2) / 2);
         uuid.main = uuid;
+        uuid.mutable = false;
+        uuid.editable = false;
         graph.addNode(uuid);
 
-        text = "Data 00001111";
+        text = "00110011110";
         let distance = Node.minHeight + uuid.height + Text.getWidth(BELONGSTO) * 2;
         const data = new Node(
             text,
             applyView(Vec(windowWidth / 4, windowHeight / 4 + distance)));
         data.main = uuid;
-        data.immutable = true;
+        data.mutable = false;
         data.edgeText = BELONGSTO;
         graph.addNode(data);
         const belongsto = new Edge(BELONGSTO, uuid, data);
         graph.addEdge(belongsto);
 
-        distance = Node.minHeight + uuid.height + Text.getWidth(NAME) * 2.5;
+        hash(text).then(hashed => {
+            uuid.text = new Text(hashed.substring(0, 8));
+        });
+
+        distance = Node.minHeight + uuid.height + Text.getWidth(LABEL) * 2.5;
         text = "Sensor Driver";
         const driver = new Node(
             text,
@@ -549,10 +542,10 @@ let CONTROL = (global) => {
             Text.textSize * 2,
             (Text.textSize + Node.textPadding.y * 2) / 2);
         driver.main = uuid;
-        driver.edgeText = NAME;
+        driver.edgeText = LABEL;
         graph.addNode(driver);
-        const name = new Edge(NAME, uuid, driver);
-        graph.addEdge(name);
+        const label = new Edge(LABEL, uuid, driver);
+        graph.addEdge(label);
 
         distance = Node.minHeight + uuid.height + Text.getWidth(VERSION) * 2;
         text = "1.0.0"

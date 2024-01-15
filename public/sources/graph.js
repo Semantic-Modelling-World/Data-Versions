@@ -7,11 +7,12 @@ const GRAPH = (global) => {
     const view = global.view;
     const applyView = global.applyView;
     const Text = global.Text;
+    const Mat = global.Mat;
 
     class Node {
         static textPadding = Vec(15, 16);
-        static minWidth = 70;
-        static minHeight = (Text.textSize * 2 + Text.ySpacing + Node.textPadding.y * 2) / 2;
+        static minWidth = (Text.getWidth("O") + Node.textPadding.x * 2) / 2;
+        static minHeight = (Text.textSize + Node.textPadding.y * 2) / 2;
         static rounding = 10;
         static strokeWeight = 3;
 
@@ -26,7 +27,8 @@ const GRAPH = (global) => {
             this.minWidth = minWidth;
             this.minHeight = minHeight;
             this.pos = pos;
-            this.immutable = false;
+            this.mutable = true;
+            this.editable = true;
             this.visible = true;
             this.selected = false;
             this.resize();
@@ -44,7 +46,8 @@ const GRAPH = (global) => {
             node.minWidth = this.minWidth;
             node.minHeight = this.minHeight;
             node.pos = this.pos;
-            node.immutable = this.immutable;
+            node.mutable = this.mutable;
+            node.editable = this.editable;
             node.visible = true;
             node.selected = false;
             return node;
@@ -88,7 +91,7 @@ const GRAPH = (global) => {
             } else {
                 p5.noStroke();
             }
-            if (this.immutable) {
+            if (!this.mutable) {
                 p5.fill(ALPHA(COLORS["lightBlue"], view.alpha));
             } else {
                 p5.fill(ALPHA(COLORS["mediumOrange"], view.alpha));
@@ -223,7 +226,7 @@ const GRAPH = (global) => {
             const width = Edge.triangle_width;
             const bottom = endBorder.minus(normdiff.times(height));
 
-            let textSizes = {x: 0, y: 0};
+            let textSizes = { x: 0, y: 0 };
             for (let i = 0; i < this.texts.length; i++) {
                 const sizes = this.texts[i].getSize();
                 textSizes.x += sizes.x;
@@ -253,14 +256,18 @@ const GRAPH = (global) => {
             const mid = startBorder.plus(diff.times(0.5));
             const angle = diff.times(-1).angle(Vec(1, 0));
             p5.push()
+            Mat.reset();
             p5.translate(mid.x, mid.y);
+            Mat.translate(mid.x, mid.y);
             p5.rotate(-angle);
+            Mat.rotate(-angle)
             if (-diff.x < 0) {
                 p5.scale(-1);
             }
             let y = textSizes.y / 3;
             y = startBorder.x < endBorder.x ? - 4 * y : y;
             p5.translate(-textSizes.x / 2, y);
+            Mat.translate(-textSizes.x / 2, y);
 
             let sizes = { x: 0, y: 0, rows: 0 };
             for (let i = 0; i < this.texts.length; i++) {
@@ -318,6 +325,17 @@ const GRAPH = (global) => {
             this.nodes.push(node);
         }
 
+        findNode(node) {
+            for (let i = 0; i < this.nodes.length; i++) {
+                if (node.text.equals(this.nodes[i].text)) {
+                    if (node.mutable === this.nodes[i].mutable && node.editable === this.nodes[i].editable) {
+                        return this.nodes[i];
+                    }
+                }
+            }
+            return undefined;
+        }
+
         deleteNode(node) {
             const nodes = [];
             const edges = [];
@@ -339,7 +357,15 @@ const GRAPH = (global) => {
             for (let i = 0; i < this.edges.length; i++) {
                 if (edge.start.id === this.edges[i].start.id && edge.end.id === this.edges[i].end.id) {
                     for (let j = 0; j < edge.texts.length; j++) {
-                        this.edges[i].texts.push(edge.texts[j]);
+                        let duplicate = false;
+                        for (let k = 0; k < this.edges[i].texts.length; k++) {
+                            if (this.edges[i].texts[k].equals(edge.texts[j])) {
+                                duplicate = true;
+                            }
+                        }
+                        if (!duplicate) {
+                            this.edges[i].texts.push(edge.texts[j]);
+                        }
                     }
                     return;
                 }
