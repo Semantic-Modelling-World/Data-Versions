@@ -27,4 +27,4 @@ const ICONS = (global) => {
     global.ResetIcon = ResetIcon;
 }
 
-export { ICONS };
+// export { ICONS };

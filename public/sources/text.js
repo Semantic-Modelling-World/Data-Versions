@@ -189,4 +189,4 @@ const TEXT = (global) => {
     global.Text = Text;
 }
 
-export { TEXT };
+// export { TEXT };

@@ -86,4 +86,4 @@ const ANIMATION = (global) => {
     global.animator = new Animator([]);
 }
 
-export { ANIMATION };
+// export { ANIMATION };

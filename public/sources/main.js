@@ -1,9 +1,9 @@
-import { UTILS } from './utils.js';
-import { TEXT } from './text.js';
-import { ANIMATION } from './animation.js';
-import { GRAPH } from './graph.js';
-import { ICONS } from './icons.js';
-import { CONTROL } from './control.js';
+/*import { UTILS } from './sources/utils.js';
+import { TEXT } from './sources/text.js';
+import { ANIMATION } from './sources/animation.js';
+import { GRAPH } from './sources/graph.js';
+import { ICONS } from './sources/icons.js';
+import { CONTROL } from './sources/control.js';*/
 
 document.addEventListener('contextmenu', event => event.preventDefault());
 
