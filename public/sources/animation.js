@@ -1,4 +1,4 @@
-const ANIMATION = (global) => {
+const ANIMATION = (exp) => {
     class Animation {
         static threshold = 0.999;
         static speed = 0.01;
@@ -34,7 +34,7 @@ const ANIMATION = (global) => {
             return false;
         }
     }
-    global.Animation = Animation;
+    exp.Animation = Animation;
 
     class Animator {
         constructor() {
@@ -83,7 +83,7 @@ const ANIMATION = (global) => {
             this.animate = [];
         }
     }
-    global.animator = new Animator([]);
+    exp.animator = new Animator([]);
 }
 
-// export { ANIMATION };
+export { ANIMATION };

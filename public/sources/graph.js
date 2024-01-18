@@ -1,13 +1,13 @@
-const GRAPH = (global) => {
-    const p5 = global.p5;
-    const Vec = global.Vec;
-    const TwoD = global.TwoD;
-    const COLORS = global.COLORS;
-    const ALPHA = global.ALPHA;
-    const view = global.view;
-    const applyView = global.applyView;
-    const Text = global.Text;
-    const Mat = global.Mat;
+const GRAPH = (exp) => {
+    const p5 = exp.p5;
+    const Vec = exp.Vec;
+    const TwoD = exp.TwoD;
+    const COLORS = exp.COLORS;
+    const ALPHA = exp.ALPHA;
+    const view = exp.view;
+    const applyView = exp.applyView;
+    const Text = exp.Text;
+    const Mat = exp.Mat;
 
     class Node {
         static textPadding = Vec(15, 16);
@@ -17,7 +17,7 @@ const GRAPH = (global) => {
         static strokeWeight = 3;
 
         constructor(text, pos, minWidth = Node.minWidth, minHeight = Node.minHeight) {
-            this.id = global.id++;
+            this.id = exp.id++;
             this.main = undefined;
             this.edgeText = undefined;
             this.subs = [];
@@ -104,7 +104,7 @@ const GRAPH = (global) => {
             this.text.draw(offset.x, offset.y);
         }
     }
-    global.Node = Node;
+    exp.Node = Node;
 
     class Edge {
         static lineWidth = 3;
@@ -115,7 +115,7 @@ const GRAPH = (global) => {
         static separator = new Text(", ");
 
         constructor(text, start, end) {
-            this.id = global.id++;
+            this.id = exp.id++;
             this.texts = [new Text(text, false)];
             this.start = start;
             this.end = end;
@@ -284,7 +284,7 @@ const GRAPH = (global) => {
             view.alpha = oldAlpha;
         }
     }
-    global.Edge = Edge;
+    exp.Edge = Edge;
 
     class Graph {
         constructor() {
@@ -325,7 +325,7 @@ const GRAPH = (global) => {
         }
 
         addNode(node) {
-            node.id = global.id++;
+            node.id = exp.id++;
             this.nodes.push(node);
         }
 
@@ -388,7 +388,7 @@ const GRAPH = (global) => {
                     return;
                 }
             }
-            edge.id = global.id++;
+            edge.id = exp.id++;
             this.edges.push(edge);
         }
 
@@ -402,7 +402,7 @@ const GRAPH = (global) => {
             this.edges = edges;
         }
     }
-    global.Graph = Graph;
+    exp.Graph = Graph;
 }
 
-// export { GRAPH };
+export { GRAPH };

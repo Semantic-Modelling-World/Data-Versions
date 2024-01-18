@@ -1,6 +1,6 @@
-const ICONS = (global) => {
-    const p5 = global.p5;
-    const Vec = global.Vec;
+const ICONS = (exp) => {
+    const p5 = exp.p5;
+    const Vec = exp.Vec;
 
     class ResetIcon {
         constructor(img, vec, size, radius) {
@@ -24,7 +24,7 @@ const ICONS = (global) => {
             return pos.minus(this.vec.plus(this.size.times(1 / 2))).distance() <= this.radius;
         }
     }
-    global.ResetIcon = ResetIcon;
+    exp.ResetIcon = ResetIcon;
 }
 
-// export { ICONS };
+export { ICONS };

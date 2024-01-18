@@ -1,8 +1,8 @@
-const TEXT = (global) => {
-    const p5 = global.p5;
-    const view = global.view;
-    const ALPHA = global.ALPHA;
-    const COLORS = global.COLORS;
+const TEXT = (exp) => {
+    const p5 = exp.p5;
+    const view = exp.view;
+    const ALPHA = exp.ALPHA;
+    const COLORS = exp.COLORS;
 
     class Text {
         static textSize = 15;
@@ -186,7 +186,7 @@ const TEXT = (global) => {
             return {x: maxWidth + x, y: height + y};
         }
     }
-    global.Text = Text;
+    exp.Text = Text;
 }
 
-// export { TEXT };
+export { TEXT };

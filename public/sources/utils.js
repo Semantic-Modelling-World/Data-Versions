@@ -1,5 +1,5 @@
-const UTILS = (global) => {
-  const p5 = global.p5;
+const UTILS = (exp) => {
+  const p5 = exp.p5;
 
   class Vector {
     constructor(x, y) {
@@ -57,7 +57,7 @@ const UTILS = (global) => {
   function Vec(x, y) {
     return new Vector(x, y);
   }
-  global.Vec = Vec;
+  exp.Vec = Vec;
 
   class TwoD {
     static triangleArea(p1, p2, p3) {
@@ -70,7 +70,7 @@ const UTILS = (global) => {
       return triArea <= rectArea;
     }
   }
-  global.TwoD = TwoD;
+  exp.TwoD = TwoD;
 
   const COLORS = {
     "darkBlue": [0, 61, 112],
@@ -85,7 +85,7 @@ const UTILS = (global) => {
     "lightOrange": [255, 169, 39],
     "black": [30, 30, 30]
   };
-  global.COLORS = COLORS;
+  exp.COLORS = COLORS;
 
 
   function ALPHA(color, a) {
@@ -96,18 +96,18 @@ const UTILS = (global) => {
     newColor[3] = a;
     return newColor;
   }
-  global.ALPHA = ALPHA;
+  exp.ALPHA = ALPHA;
 
 
   function UUID() {
     return crypto.randomUUID().slice(0, 8);
   }
-  global.UUID = UUID;
+  exp.UUID = UUID;
 
   const view = { alpha: 255, viewpoint: Vec(0, 0), scale: 1 };
-  global.view = view;
+  exp.view = view;
 
-  global.applyView = (point, v) => { // for more advanced transformations use the Matrix library
+  exp.applyView = (point, v) => { // for more advanced transformations use the Matrix library
     if (v === undefined) {
       v = view;
     }
@@ -117,7 +117,7 @@ const UTILS = (global) => {
     return translated;
   }
 
-  global.unapplyView = (point, v) => {
+  exp.unapplyView = (point, v) => {
     if (v === undefined) {
       v = view;
     }
@@ -128,4 +128,4 @@ const UTILS = (global) => {
   }
 }
 
-// export { UTILS };
+export { UTILS };

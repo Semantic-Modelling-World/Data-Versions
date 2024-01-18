@@ -1,27 +1,27 @@
-let CONTROL = (global) => {
-    const p5 = global.p5;
-    const Vec = global.Vec;
-    const Node = global.Node;
-    const Edge = global.Edge;
-    const Graph = global.Graph;
-    const ResetIcon = global.ResetIcon;
+let CONTROL = (exp) => {
+    const p5 = exp.p5;
+    const Vec = exp.Vec;
+    const Node = exp.Node;
+    const Edge = exp.Edge;
+    const Graph = exp.Graph;
+    const ResetIcon = exp.ResetIcon;
     const COMPATIBLE = "compatible";
     const PREDECESSOR = "predecessor";
     const SUCCESSOR = "successor";
     const BELONGSTO = "belongs to";
     const LABEL = "label";
     const VERSION = "version";
-    const UUID = global.UUID;
-    const COLORS = global.COLORS;
-    const Animation = global.Animation;
-    const animator = global.animator;
-    const view = global.view;
-    const applyView = global.applyView;
-    const unapplyView = global.unapplyView;
-    const TwoD = global.TwoD
-    const Text = global.Text;
-    const canvas = global.canvas;
-    const Mat = global.Mat;
+    const UUID = exp.UUID;
+    const COLORS = exp.COLORS;
+    const Animation = exp.Animation;
+    const animator = exp.animator;
+    const view = exp.view;
+    const applyView = exp.applyView;
+    const unapplyView = exp.unapplyView;
+    const TwoD = exp.TwoD
+    const Text = exp.Text;
+    const canvas = exp.canvas;
+    const Mat = exp.Mat;
 
     let graph = undefined;
     let keyChecks = [];
@@ -105,7 +105,7 @@ let CONTROL = (global) => {
                         pos: applyView(mouse),
                         width: 0,
                         height: 0,
-                        id: global.id++,
+                        id: exp.id++,
                         dummy: true
                     });
             }
@@ -646,4 +646,4 @@ let CONTROL = (global) => {
     startLevel1();
 }
 
-// export { CONTROL };
+export { CONTROL };
