@@ -2,7 +2,7 @@ import { UTILS } from './utils.js';
 import { TEXT } from './text.js';
 import { ANIMATION } from './animation.js';
 import { GRAPH } from './graph.js';
-import { ICONS } from './icons.js';
+import { BUTTONS } from './buttons.js';
 import { CONTROL } from './control.js';
 
 document.addEventListener('contextmenu', event => event.preventDefault());
@@ -14,7 +14,7 @@ const MAIN = (p5) => {
   TEXT(exp);
   ANIMATION(exp);
   GRAPH(exp);
-  ICONS(exp);
+  BUTTONS(exp);
   CONTROL(exp);
 }
 

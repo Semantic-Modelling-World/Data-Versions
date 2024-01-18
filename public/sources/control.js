@@ -4,33 +4,36 @@ let CONTROL = (exp) => {
     const Node = exp.Node;
     const Edge = exp.Edge;
     const Graph = exp.Graph;
-    const ResetIcon = exp.ResetIcon;
+    const Text = exp.Text;
+    const CircleButton = exp.CircleButton;
+    const SquareButton = exp.SquareButton;
+    const UUID = exp.UUID;
+    const COLORS = exp.COLORS;
+    const Animation = exp.Animation;
+    const animator = exp.animator;
+    const canvas = exp.canvas;
+    const Mat = exp.Mat;
+    const view = exp.view;
+    const applyView = exp.applyView;
+    const unapplyView = exp.unapplyView;
+
     const COMPATIBLE = "compatible";
     const PREDECESSOR = "predecessor";
     const SUCCESSOR = "successor";
     const BELONGSTO = "belongs to";
     const LABEL = "label";
     const VERSION = "version";
-    const UUID = exp.UUID;
-    const COLORS = exp.COLORS;
-    const Animation = exp.Animation;
-    const animator = exp.animator;
-    const view = exp.view;
-    const applyView = exp.applyView;
-    const unapplyView = exp.unapplyView;
-    const TwoD = exp.TwoD
-    const Text = exp.Text;
-    const canvas = exp.canvas;
-    const Mat = exp.Mat;
 
     let graph = undefined;
+    let windowWidth = 0;
+    let windowHeight = 0;
+
     let keyChecks = [];
     let checkInitial = 400;
     let checkFrequency = 40;
-    let windowWidth = 0;
-    let windowHeight = 0;
-    let holding = undefined;
-    let offset = Vec(0, 0);
+
+    let draggedNode = undefined;
+    let mouseOffset = Vec(0, 0);
     let node = undefined;
     let edge = undefined;
     let editNode = undefined;
@@ -39,12 +42,20 @@ let CONTROL = (exp) => {
     let originalEditNode = undefined;
     let originalEditEdge = undefined;
     let changeViewpoint = false;
-    let reset_icon = undefined;
-    let edit_icon = undefined;
+
+    let reset_button = undefined;
+    let reset_pos = undefined;
+    let help_button = undefined;
+    let help_pos = undefined;
+    let right_arrow_button = undefined;
+    let right_arrow_pos = undefined;
+    let left_arrow_button = undefined;
+    let left_arrow_pos = undefined;
     let levelTextSize = 32;
     let levelTextPadding = Vec(20, 20);
     let levelText = "Lv.";
     let level = "1";
+
     let controls = {
         move_node: [0],
         edit_node: [2],
@@ -87,17 +98,18 @@ let CONTROL = (exp) => {
         const mouse = Vec(p5.mouseX, p5.mouseY);
         const nodes = graph.nodes;
         const touching_nodes = graph.touches_nodes(mouse);
-        const touching_reset = reset_icon !== undefined && reset_icon.touches(mouse);
-
-        if (touching_reset) {
+        if ((reset_button !== undefined && reset_button.touches(reset_pos(), mouse)) ||
+            (right_arrow_button !== undefined && right_arrow_button.touches(right_arrow_pos(), mouse)) ||
+            (left_arrow_button !== undefined && left_arrow_button.touches(left_arrow_pos(), mouse)) ||
+            (help_button !== undefined && help_button.touches(help_pos(), mouse))) {
         } else if (touching_nodes.length > 0) {
             if (isIn(event.button, controls.move_node)) {
-                holding = nodes[touching_nodes[touching_nodes.length - 1]];
-                offset = unapplyView(holding.pos).minus(mouse);
-                animator.cancel(holding);
+                draggedNode = nodes[touching_nodes[touching_nodes.length - 1]];
+                mouseOffset = unapplyView(draggedNode.pos).minus(mouse);
+                animator.cancel(draggedNode);
             } else if (isIn(event.button, controls.create_edge)) {
                 const start = nodes[touching_nodes[touching_nodes.length - 1]];
-                offset = Vec(0, 0);
+                mouseOffset = Vec(0, 0);
                 edge = new Edge(
                     COMPATIBLE,
                     start,
@@ -112,25 +124,25 @@ let CONTROL = (exp) => {
         } else {
             if (isIn(event.button, controls.move_graph)) {
                 changeViewpoint = true
-                offset = view.viewpoint.times(view.scale).minus(mouse);
+                mouseOffset = view.viewpoint.times(view.scale).minus(mouse);
             }
         }
     }
 
     p5.mouseDragged = () => {
         const mouse = Vec(p5.mouseX, p5.mouseY);
-        if (holding !== undefined) {
-            holding.pos = applyView(mouse.plus(offset));
+        if (draggedNode !== undefined) {
+            draggedNode.pos = applyView(mouse.plus(mouseOffset));
         }
         if (edge !== undefined) {
             if (edge.end.dummy !== undefined) {
-                edge.end.pos = applyView(mouse.plus(offset));
+                edge.end.pos = applyView(mouse.plus(mouseOffset));
             } else {
-                edge.start.pos = applyView(mouse.plus(offset));
+                edge.start.pos = applyView(mouse.plus(mouseOffset));
             }
         }
         if (changeViewpoint === true) {
-            view.viewpoint = mouse.plus(offset).times(1 / view.scale);
+            view.viewpoint = mouse.plus(mouseOffset).times(1 / view.scale);
         }
     }
 
@@ -142,38 +154,61 @@ let CONTROL = (exp) => {
 
     p5.mouseReleased = (event) => {
         const mouse = Vec(p5.mouseX, p5.mouseY);
-        const offsetMouse = mouse.plus(offset)
+        const offsettedMouse = mouse.plus(mouseOffset)
         const nodes = graph.nodes;
-        const touching_nodes = graph.touches_nodes(offsetMouse);
+        const touching_nodes = graph.touches_nodes(offsettedMouse);
         const edges = graph.edges;
-        const touching_edges = graph.touches_edges(offsetMouse);
+        const touching_edges = graph.touches_edges(offsettedMouse);
         if (node === undefined) {
-            if (holding === undefined) {
+            if (draggedNode === undefined) {
                 if (edge === undefined) {
-                    if (reset_icon !== undefined && reset_icon.touches(mouse)) {
+                    if (reset_button !== undefined && reset_button.touches(reset_pos(), mouse)) {
                         if (isIn(event.button, controls.press_button)) {
-                            return startLevel1();
+                            if (level === "1") {
+                                return startLevel1();
+                            } else if (level === "2") {
+                                return startLevel2();
+                            } else if (level === "3") {
+                                return startLevel3();
+                            } else if (level === "4") {
+                                return startLevel4();
+                            }
                         }
-                    } else {
+                    } else if (help_button !== undefined && help_button.touches(help_pos(), mouse)) {
                         if (isIn(event.button, controls.press_button)) {
-                            p5.textSize(levelTextSize);
-                            p5.noStroke();
-                            const w = p5.textWidth(levelText + level);
-                            const h = levelTextSize;
-                            const p2 = Vec(p5.windowWidth - levelTextPadding.x, levelTextPadding.y);
-                            const p1 = p2.plus(Vec(-w, 0));
-                            const p3 = p2.plus(Vec(0, h));
-                            const p4 = p2.plus(Vec(-w, h));
-                            if (TwoD.pointIntersectRect(mouse, p1, p2, p3, p4)) {
-                                if (level === "1") {
-                                    return startLevel2();
-                                } else if (level === "2") {
-                                    return startLevel3();
-                                } else if (level === "3") {
-                                    return startLevel4();
-                                } else if (level === "4") {
-                                    return startLevel1();
-                                }
+                            // TODO: Open Help Dialog
+                            if (level === "1") {
+                                // TODO:
+                            } else if (level === "2") {
+                                // TODO:
+                            } else if (level === "3") {
+                                // TODO:
+                            } else if (level === "4") {
+                                // TODO:
+                            }
+                        }
+                    } else if (right_arrow_button !== undefined && right_arrow_button.touches(right_arrow_pos(), mouse)) {
+                        if (isIn(event.button, controls.press_button)) {
+                            if (level === "1") {
+                                return startLevel2();
+                            } else if (level === "2") {
+                                return startLevel3();
+                            } else if (level === "3") {
+                                return startLevel4();
+                            } else if (level === "4") {
+                                return startLevel1();
+                            }
+                        }
+                    } else if (left_arrow_button !== undefined && left_arrow_button.touches(left_arrow_pos(), mouse)) {
+                        if (isIn(event.button, controls.press_button)) {
+                            if (level === "1") {
+                                return startLevel4();
+                            } else if (level === "2") {
+                                return startLevel1();
+                            } else if (level === "3") {
+                                return startLevel2();
+                            } else if (level === "4") {
+                                return startLevel3();
                             }
                         }
                     }
@@ -208,7 +243,7 @@ let CONTROL = (exp) => {
                 } else if (isIn(event.button, controls.edit_node)) {
                     originalEditNode = nodes[touching_nodes[touching_nodes.length - 1]];
                     if (originalEditNode.editable) {
-                        const row = originalEditNode.touches_row(offsetMouse);
+                        const row = originalEditNode.touches_row(offsettedMouse);
                         if (edge === undefined || edge.start.id === originalEditNode.id) {
                             originalEditNode.visible = false;
                             editNode = originalEditNode.copy();
@@ -408,8 +443,8 @@ let CONTROL = (exp) => {
     }
 
     function reset() {
-        holding = undefined;
-        offset = Vec(0, 0);
+        draggedNode = undefined;
+        mouseOffset = Vec(0, 0);
         node = undefined;
         edge = undefined;
         if (originalEdge !== undefined) {
@@ -417,9 +452,6 @@ let CONTROL = (exp) => {
             originalEdge = undefined;
         }
         changeViewpoint = false;
-        if (edit_icon !== undefined) {
-            edit_icon.graph = graph;
-        }
     }
 
     function reset_edit() {
@@ -452,12 +484,12 @@ let CONTROL = (exp) => {
     }
 
     p5.draw = () => {
-        p5.background(230, 230, 231);
         if (windowWidth !== p5.windowWidth || windowHeight !== p5.windowHeight) {
             windowWidth = p5.windowWidth;
             windowHeight = p5.windowHeight;
             p5.resizeCanvas(p5.windowWidth, p5.windowHeight);
         }
+        p5.background(230, 230, 231);
 
         const mouse = Vec(p5.mouseX, p5.mouseY);
 
@@ -494,13 +526,22 @@ let CONTROL = (exp) => {
         p5.pop();
 
         p5.textAlign(p5.RIGHT, p5.TOP);
-        p5.fill(COLORS["black"])
+        p5.fill(COLORS["mediumGrey"])
         p5.textSize(levelTextSize);
         p5.noStroke();
         p5.text(levelText + level, p5.windowWidth - levelTextPadding.x, levelTextPadding.y);
 
-        if (reset_icon !== undefined) {
-            reset_icon.draw();
+        if (reset_button !== undefined) {
+            reset_button.draw(reset_pos());
+        }
+        if (help_button !== undefined) {
+            help_button.draw(help_pos());
+        }
+        if (right_arrow_button !== undefined) {
+            right_arrow_button.draw(right_arrow_pos());
+        }
+        if (left_arrow_button !== undefined) {
+            left_arrow_button.draw(left_arrow_pos());
         }
 
         const nextKeyChecks = [];
@@ -639,7 +680,31 @@ let CONTROL = (exp) => {
         p5.smooth();
         p5.frameRate(60);
         p5.loadImage('assets/reload.png', img => {
-            reset_icon = new ResetIcon(img, Vec(10, 10), 1 / 2.5, 17);
+            reset_button = new CircleButton(img, 1 / 2.5, 0, 17);
+            reset_pos = () => Vec(10, 10);
+        });
+        p5.loadImage('assets/arrow.png', img => {
+            right_arrow_button = new SquareButton(img, 1 / 3.7, 0);
+            right_arrow_pos = () => {
+                p5.textSize(levelTextSize);
+                p5.noStroke();
+                const x = right_arrow_button.size.x + levelTextPadding.x - 3;
+                const y = levelTextPadding.y + levelTextSize - 5;
+                return Vec(p5.windowWidth - x, y);
+            };
+
+            left_arrow_button = new SquareButton(img, 1 / 3.7, p5.PI);
+            left_arrow_pos = () => {
+                p5.textSize(levelTextSize);
+                p5.noStroke();
+                const x = right_arrow_pos().x - left_arrow_button.size.x;
+                const y = levelTextPadding.y + levelTextSize - 5;
+                return Vec(x, y);
+            };
+        });
+        p5.loadImage('assets/question.png', img => {
+            help_button = new CircleButton(img, 1 / 2.75, 0, 17);
+            help_pos = () => Vec(p5.windowWidth - help_button.size.x - levelTextPadding.x + 10, p5.windowHeight - help_button.size.y - levelTextPadding.y + 10);
         });
     }
 
