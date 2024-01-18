@@ -2,19 +2,20 @@
   "name": "rdf-graph",
   "version": "1.0.0",
   "description": "Visualisation tool for rdf data representing versioned graphs",
-  "main": "public/index.js",
+  "main": "index.js",
   "scripts": {
-    "start": "supervisor public/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build:prod": ""
+    "start": "node index.js",
+    "test": "supervisor index.js",
+    "build:prod": "npm install",
+    "build:dev": "npm install --include=dev"
   },
   "keywords": [
     "visualisation",
-    "rdf",
+    "versioning",
     "graph"
   ],
   "author": "Leonardo Mieschendahl",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "express": "^4.18.2"
   },
