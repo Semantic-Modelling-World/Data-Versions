@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "test": "supervisor index.js",
-    "build:prod": "npm install",
+    "build:prod": "npm install --omit=dev",
     "build:dev": "npm install --include=dev"
   },
   "keywords": [
