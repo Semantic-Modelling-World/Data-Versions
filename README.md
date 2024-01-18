@@ -9,7 +9,7 @@ A project for showcasing good and bad approaches for versioning digital data via
 
 ## Setup
 To build the project run the command `npm run build:prod`.  
-To start the project run the command `npm start`.
+To start the project run the command `npm start`.  
 Then visit `http://localhost:3001/` to test the examples.
 
 To build the project for development run the command `npm run build:dev`.  
