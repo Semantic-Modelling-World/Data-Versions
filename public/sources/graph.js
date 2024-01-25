@@ -105,8 +105,6 @@ const GRAPH = (exp) => {
         static triangle_height = 20;
         static triangle_width = 15;
         static separator = new Text(", ");
-        static touchMargin = 2;
-
         constructor(text, start, end) {
             this.id = exp.id++;
             this.texts = [new Text(text, false)];
@@ -211,23 +209,35 @@ const GRAPH = (exp) => {
             let y = textSizes.y / 3;
             y = startBorder.x < endBorder.x ? - 4 * y : y;
             Mat.translate(-textSizes.x / 2, y);
+            const invMat = Mat.getInverse();
             p5.noStroke();
             let start = { x: 0, y: 0 };
             for (let i = 0; i < this.texts.length; i++) {
                 const offset = this.texts[i].getSize(start.x, 0, false);
                 const vec = Vec(offset.x, offset.y).minus(Vec(start.x, 0));
-                const points = Mat.applyToArray([
-                    start.x - Edge.touchMargin,
-                    -Edge.touchMargin,
-                    start.x - Edge.touchMargin,
-                    vec.y + Edge.touchMargin,
-                    start.x + vec.x + Edge.touchMargin,
-                    vec.y + Edge.touchMargin,
-                    start.x + vec.x + Edge.touchMargin,
-                    -Edge.touchMargin]);
+                let points = [
+                    start.x,
+                    0,
+                    start.x,
+                    vec.y,
+                    start.x + vec.x,
+                    vec.y,
+                    start.x + vec.x,
+                    0];
+                points = [
+                    points[0] - Text.touchMargin, // Somehow the touchmargin is not
+                    points[1] - Text.touchMargin,
+                    points[2] - Text.touchMargin,
+                    points[3] + Text.touchMargin,
+                    points[4] + Text.touchMargin,
+                    points[5] + Text.touchMargin,
+                    points[6] + Text.touchMargin,
+                    points[7] - Text.touchMargin
+                ];
+                points = Mat.applyToArray(points);
                 if (TwoD.pointIntersectRect(point, Vec(points[0], points[1]), Vec(points[2], points[3]),
                     Vec(points[4], points[5]), Vec(points[6], points[7]))) {
-                    return this.texts[i];
+                    return i;
                 }
                 if (this.texts.length > 1 && i + 1 !== this.texts.length) {
                     start = Edge.separator.getSize(offset.x, 0, false);
@@ -302,8 +312,6 @@ const GRAPH = (exp) => {
             }
             p5.pop();
             view.alpha = oldAlpha;
-
-            this.touches_text(Vec(p5.mouseX, p5.mouseY));
         }
     }
     exp.Edge = Edge;
@@ -317,7 +325,7 @@ const GRAPH = (exp) => {
         touches_nodes(pos) {
             let touching = [];
             for (let i = 0; i < this.nodes.length; i++) {
-                if (this.nodes[i].touches(pos)) {
+                if (this.nodes[i].visible && this.nodes[i].touches(pos)) {
                     touching.push(i);
                 }
             }
@@ -327,7 +335,7 @@ const GRAPH = (exp) => {
         touches_edges(pos) {
             let touching = [];
             for (let i = 0; i < this.edges.length; i++) {
-                if (this.edges[i].touches(pos)) {
+                if (this.edges[i].visible && this.edges[i].touches(pos)) {
                     touching.push(i);
                 }
             }
