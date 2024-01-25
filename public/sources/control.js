@@ -89,15 +89,14 @@ let CONTROL = (exp) => {
     }
 
     p5.mousePressed = (event) => {
-        const ignoreInstruction = editNode !== undefined && isIn(event.button, controls.edit_node);
-        set_edit();
-        reset();
-        if (ignoreInstruction) {
-            return;
-        }
         const mouse = Vec(p5.mouseX, p5.mouseY);
         const nodes = graph.nodes;
         const touching_nodes = graph.touches_nodes(mouse);
+        const editNode_ = nodes[touching_nodes[touching_nodes.length - 1]];
+        if (!isIn(event.button, controls.edit_node) || editNode === undefined || editNode_ === undefined || editNode.id !== editNode_.id) {
+            set_edit();
+        }
+        reset();
         if ((reset_button !== undefined && reset_button.touches(reset_pos(), mouse)) ||
             (right_arrow_button !== undefined && right_arrow_button.touches(right_arrow_pos(), mouse)) ||
             (left_arrow_button !== undefined && left_arrow_button.touches(left_arrow_pos(), mouse)) ||
@@ -159,6 +158,10 @@ let CONTROL = (exp) => {
         const touching_nodes = graph.touches_nodes(offsettedMouse);
         const edges = graph.edges;
         const touching_edges = graph.touches_edges(offsettedMouse);
+        const editNode_ = nodes[touching_nodes[touching_nodes.length - 1]];
+        if (!isIn(event.button, controls.edit_node) || editNode === undefined || editNode_.id === undefined || editNode.id !== editNode_.id) {
+            set_edit();
+        }
         if (node === undefined) {
             if (draggedNode === undefined) {
                 if (edge === undefined) {
@@ -246,7 +249,9 @@ let CONTROL = (exp) => {
                         const row = originalEditNode.touches_row(offsettedMouse);
                         if (edge === undefined || edge.start.id === originalEditNode.id) {
                             originalEditNode.visible = false;
-                            editNode = originalEditNode.copy();
+                            if (editNode === undefined || editNode.id !== originalEditNode.id) {
+                                editNode = originalEditNode.copy();
+                            }
                             editNode.visibile = true;
                             editNode.text.setEdit(true);
                             editNode.text.setCursor(0);
@@ -497,6 +502,18 @@ let CONTROL = (exp) => {
             const node = graph.nodes[i];
             node.selected = node.touches(mouse);
         }
+
+        for (let i = 0; i < graph.edges.length; i++) {
+            const edge = graph.edges[i];
+            for (let i = 0; i < edge.texts.length; i++) {
+                edge.texts[i].selected = false;
+            }
+            const text = edge.touches_text(mouse);
+            if (text !== undefined) {
+                text.selected = true;
+            }
+        }
+
 
         animator.update();
 

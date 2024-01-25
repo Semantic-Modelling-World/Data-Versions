@@ -82,10 +82,10 @@ const GRAPH = (exp) => {
         }
 
         draw() {
-            this.resize();
             if (!this.visible) {
                 return;
             }
+            this.resize();
             if (this.selected) {
                 p5.stroke(ALPHA(COLORS["lightGrey"], view.alpha));
             } else {
@@ -196,30 +196,55 @@ const GRAPH = (exp) => {
             point = applyView(point);
             const { start: startBorder, end: endBorder, distance: distance } = this.getBorderPoints();
             if (distance <= 0) {
-                return false;
+                return;
             }
-
             const diff = endBorder.minus(startBorder);
-            const orthodiff = diff.orthogonal().normalized();
+            let textSizes = { x: 0, y: 0 };
+            for (let i = 0; i < this.texts.length; i++) {
+                const sizes = this.texts[i].getSize();
+                textSizes.x += sizes.x;
+                textSizes.y = sizes.y;
+            }
+            textSizes.x += Edge.separator.getSize().x * Math.max(0, this.texts.length - 1);
 
-            let p1 = undefined;
-            let p2 = undefined;
-            let p3 = undefined;
-            let p4 = undefined;
-            const width = Edge.triangle_width;
-            p1 = startBorder.plus(orthodiff.times(width * Edge.touchWidth));
-            p2 = startBorder.plus(orthodiff.times(width * -Edge.touchWidth));
-            p3 = endBorder.plus(orthodiff.times(width * Edge.touchWidth));
-            p4 = endBorder.plus(orthodiff.times(width * -Edge.touchWidth));
-
-            return TwoD.pointIntersectRect(point, p1, p2, p3, p4);
+            const mid = startBorder.plus(diff.times(0.5));
+            const angle = diff.times(-1).angle(Vec(1, 0));
+            Mat.reset();
+            Mat.translate(mid.x, mid.y);
+            Mat.rotate(-angle)
+            if (-diff.x < 0) {
+                Mat.scaleX(-1);
+                Mat.scaleX(-1);
+            }
+            let y = textSizes.y / 3;
+            y = startBorder.x < endBorder.x ? - 4 * y : y;
+            Mat.translate(-textSizes.x / 2, y);
+            var invMat = Mat.getInverse();
+            p5.fill(0, 0, 0, 100);
+            p5.noStroke();
+            let start = { x: 0, y: 0 };
+            for (let i = 0; i < this.texts.length; i++) {
+                const offset = this.texts[i].getSize(start.x, 0, false);
+                const vec = Vec(offset.x, offset.y).minus(Vec(start.x, 0));
+                const points = [start.x, 0, start.x, vec.y, start.x + vec.x, vec.y, start.x + vec.x, 0];
+                // const points = Mat.applyToArray([start.x, 0, start.x + vec.x, 0, start.x + vec.x, start.y + vec.y, start.x, vec.y]);
+                // p5.triangle(points[0], points[1], points[2], points[3], points[4], points[5]);
+                // p5.triangle(points[2], points[3], points[4], points[5], points[6], points[7]);
+                const invPoint = invMat.applyToArray([point.x, point.y]);
+                if (TwoD.pointIntersectRect(Vec(invPoint[0], invPoint[1]), Vec(points[0], points[1]), Vec(points[2], points[3]), Vec(points[4], points[5]), Vec(points[6], points[7]))) {
+                    return this.texts[i];
+                }
+                if (this.texts.length > 1 && i + 1 !== this.texts.length) {
+                    start = Edge.separator.getSize(offset.x, 0, false);
+                }
+            }
+            return;
         }
 
         draw(head = false) {
             if (!this.visible) {
                 return;
             }
-
             const { start: startBorder, end: endBorder, distance: distance } = this.getBorderPoints();
             if (distance <= 0) {
                 return;
@@ -273,15 +298,17 @@ const GRAPH = (exp) => {
             p5.translate(-textSizes.x / 2, y);
             Mat.translate(-textSizes.x / 2, y);
 
-            let sizes = { x: 0, y: 0, rows: 0 };
+            let offset = { x: 0, y: 0, rows: 0 };
             for (let i = 0; i < this.texts.length; i++) {
-                sizes = this.texts[i].draw(sizes.x, 0);
+                offset = this.texts[i].draw(offset.x, 0);
                 if (this.texts.length > 1 && i + 1 !== this.texts.length) {
-                    sizes = Edge.separator.draw(sizes.x, 0);
+                    offset = Edge.separator.draw(offset.x, 0);
                 }
             }
             p5.pop();
             view.alpha = oldAlpha;
+
+            this.touches_text(Vec(p5.mouseX, p5.mouseY));
         }
     }
     exp.Edge = Edge;
@@ -351,7 +378,7 @@ const GRAPH = (exp) => {
                     endEdges.push(this.edges[i]);
                 }
             }
-            return { start: startEdges, end: endEdges};
+            return { start: startEdges, end: endEdges };
         }
 
         deleteNode(node) {

@@ -18,6 +18,7 @@ const TEXT = (exp) => {
             this.cursorWidth = 2;
             this.time = Date.now();
             this.text = []
+            this.selected = false;
             this.setText(text);
         }
 
@@ -39,6 +40,7 @@ const TEXT = (exp) => {
             text.cursorWidth = this.cursorWidth;
             text.text = this.text.slice();
             text.time = this.time;
+            text.selected = false;
             return text;
         }
 
@@ -124,11 +126,11 @@ const TEXT = (exp) => {
             return index;
         }
 
-        getSize() {
+        getSize(x = 0, y = 0) {
             p5.noStroke();
             p5.textSize(this.textSize);
             if (!this.linebreak) {
-                return {x: p5.textWidth(this.text.join('')), y: this.text.length > 0 ? this.textSize : 0, rows: this.text.length > 0 ? 1 : 0};
+                return { x: p5.textWidth(this.text.join('')), y: this.textSize, rows: 1 };
             }
 
             let maxWidth = 0;
@@ -143,24 +145,27 @@ const TEXT = (exp) => {
                 index = end + 1;
                 counter++;
             }
-            if (this.edit === true && this.cursor === this.text.length && this.text[this.text.length-1] === "\n") {
+            if (this.text[this.text.length - 1] === "\n") {
                 counter++;
             }
             const height = counter * this.textSize + (counter - 1) * this.ySpacing;
-            return {x: maxWidth, y: height, rows: counter};
+            return { x: maxWidth + x, y: height + y, rows: counter };
         }
 
-        draw(x, y, vertical=p5.LEFT, horizontal=p5.TOP) {
+        draw(x, y, vertical = p5.LEFT, horizontal = p5.TOP) {
             p5.textAlign(vertical, horizontal);
             p5.noStroke();
             p5.textSize(this.textSize);
             p5.fill(ALPHA(this.textColor, view.alpha));
+            if (this.selected) {
+                p5.stroke(ALPHA(COLORS["lightGrey"], view.alpha));
+            }
 
             let cursorX = x;
             let cursorY = y;
-            let count = 0;
-            let index = 0;
             let maxWidth = 0;
+            let index = 0;
+            let counter = 0;
             while (index <= this.text.length) {
                 const end = this.lineEnd(index);
                 const line = this.text.slice(index, end).join('');
@@ -172,18 +177,18 @@ const TEXT = (exp) => {
                     cursorX = x + p5.textWidth(this.text.slice(index, this.cursor).join(''));
                     cursorY = y;
                 }
-                p5.text(line, x, y);
                 index = end + 1;
+                counter++;
+                p5.text(line, x, y);
                 y += this.ySpacing + this.textSize;
-                count++;
             }
             if (this.edit && (Date.now() - this.time) % 1000 < 500) {
                 p5.stroke(ALPHA(this.cursorColor, view.alpha));
                 p5.strokeWeight(this.cursorWidth);
                 p5.line(cursorX, cursorY, cursorX, cursorY + this.textSize);
             }
-            const height = count * this.textSize + (count - 1) * this.ySpacing;
-            return {x: maxWidth + x, y: height + y};
+            const height = counter * this.textSize + (counter - 1) * this.ySpacing;
+            return { x: maxWidth + x, y: height + y };
         }
     }
     exp.Text = Text;
