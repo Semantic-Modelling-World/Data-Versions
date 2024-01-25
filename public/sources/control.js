@@ -246,7 +246,6 @@ let CONTROL = (exp) => {
                 } else if (isIn(event.button, controls.edit_node)) {
                     originalEditNode = nodes[touching_nodes[touching_nodes.length - 1]];
                     if (originalEditNode.editable) {
-                        const row = originalEditNode.touches_row(offsettedMouse);
                         if (edge === undefined || edge.start.id === originalEditNode.id) {
                             originalEditNode.visible = false;
                             if (editNode === undefined || editNode.id !== originalEditNode.id) {
@@ -254,10 +253,8 @@ let CONTROL = (exp) => {
                             }
                             editNode.visibile = true;
                             editNode.text.setEdit(true);
-                            editNode.text.setCursor(0);
-                            if (editNode.text.findCursorRepeat("\n", 1, row + 1)) {
-                                editNode.text.moveCursor(-1);
-                            }
+                            const textPos = editNode.pos.plus(Node.textPadding);
+                            editNode.text.setCursorByPoint(textPos.x - editNode.width, textPos.y - editNode.height, offsettedMouse);
                         }
                     }
                 }
@@ -274,7 +271,8 @@ let CONTROL = (exp) => {
                         editEdge = originalEditEdge.copy();
                         editEdge.visibile = true;
                         editEdge.text.setEdit(true);
-                        editEdge.text.setCursor(-1);
+                        const textPos = editEdge.pos.plus(Node.textPadding);
+                        editEdge.text.setCursorByPoint(textPos.x - editEdge.width, textPos.y - editEdge.height, offsettedMouse);
                     }
                 }
             }
@@ -321,11 +319,9 @@ let CONTROL = (exp) => {
                 } else if (isIn(event.key, controls.cursor_right)) {
                     edit.text.moveCursor(1);
                 } else if (isIn(event.key, controls.cursor_up)) {
-                    edit.text.moveCursor(-1);
-                    edit.text.findCursor("\n", -1);
+                    edit.text.move2DCursor(0, -1);
                 } else if (isIn(event.key, controls.cursor_down)) {
-                    edit.text.moveCursor(1);
-                    edit.text.findCursor("\n", 1);
+                    edit.text.move2DCursor(0, 1);
                 } else if (isIn(event.key, controls.cursor_start_line)) {
                     // TODO
                 } else if (isIn(event.key, controls.cursor_end_line)) {

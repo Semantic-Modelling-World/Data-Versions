@@ -22,8 +22,8 @@ const GRAPH = (exp) => {
             this.edgeText = undefined;
             this.subs = [];
             this.text = new Text(text);
-            this.width = 0;  // half width
-            this.height = 0;
+            this.width = 0;  // half width like radius
+            this.height = 0;  // half height like radius
             this.minWidth = minWidth;
             this.minHeight = minHeight;
             this.pos = pos;
@@ -61,15 +61,6 @@ const GRAPH = (exp) => {
             const p4 = this.pos.plus(Vec(this.width, this.height));
             const res = TwoD.pointIntersectRect(point, p1, p2, p3, p4);
             return res;
-        }
-
-        touches_row(point) {
-            point = applyView(point);
-            const offset = this.pos.minus(Vec(this.width, this.height)).plus(Node.textPadding);
-            const y = point.minus(offset).y;
-            let row = Math.floor(y / (this.text.ySpacing + this.text.textSize));
-            row = Math.max(0, Math.min(row, this.text.getSize().rows - 1));
-            return row;
         }
 
         resize() {
@@ -137,7 +128,6 @@ const GRAPH = (exp) => {
             edge.editable = this.editable;
             return edge;
         }
-
 
         getBorderPoint(start, end) {
             const diff = end.pos.minus(start.pos);
