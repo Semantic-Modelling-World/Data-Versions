@@ -16,6 +16,7 @@ const TEXT = (exp) => {
             this.edit = false;
             this.cursorX = 0;
             this.cursorY = 0;
+            this.saveCursor();
             this.cursorColor = COLORS["black"];
             this.cursorWidth = 1;
             this.time = Date.now();
@@ -39,9 +40,10 @@ const TEXT = (exp) => {
             text.edit = false;
             text.cursorX = this.cursorX;
             text.cursorY = this.cursorY;
+            text.oldCursor = this.oldCursor;
             text.cursorColor = this.cursorColor;
             text.cursorWidth = this.cursorWidth;
-            text.text = this.text.slice();
+            text.text = this.text.map(row => row.slice());
             text.time = this.time;
             text.selected = false;
             return text;
@@ -69,27 +71,34 @@ const TEXT = (exp) => {
             this.edit = edit;
         }
 
+        getChar() {
+            if (this.cursorX < this.text[this.cursorY].length) {
+                return this.text[this.cursorY][this.cursorX];
+            }
+            return "\n";
+        }
+
         cropCursor() {
             this.cursorY = Math.min(this.text.length - 1, Math.max(0, this.cursorY));
             this.cursorX = Math.min(this.text[this.cursorY].length, Math.max(0, this.cursorX));
         }
 
-        setCursor(pos) {
-            this.time = Date.now();
-            if (pos >= 0) {
-                this.cursorX = 0;
-                this.cursorY = 0;
-                this.moveCursor(pos);
-            } else {
-                this.cursorY = this.text.length - 1;
-                this.cursorX = this.text[cursorY].length;
-                this.moveCursor(pos + 1);
-            }
+        saveCursor() {
+            this.oldCursor = { x: this.cursorX, y: this.cursorY };
+        }
+
+        loadCursor() {
+            return this.oldCursor;
         }
 
         move2DCursor(x, y) {
             this.time = Date.now();
-            this.cursorX += x;
+            if (x !== 0) {
+                this.cursorX += x;
+                this.saveCursor();
+            } else {
+                this.cursorX = this.loadCursor().x;
+            }
             this.cursorY += y;
             this.cropCursor();
         }
@@ -97,6 +106,7 @@ const TEXT = (exp) => {
         moveCursor(n) {
             this.time = Date.now();
             if (n === 0) {
+                this.saveCursor();
                 return false;
             }
             for (let i = 0; i < n; i++) {
@@ -108,6 +118,7 @@ const TEXT = (exp) => {
                     if (this.cursorY >= this.text.length) {
                         this.cursorX = old.x;
                         this.cursorY = old.y;
+                        this.saveCursor();
                         return false;
                     }
                 }
@@ -120,25 +131,21 @@ const TEXT = (exp) => {
                     if (this.cursorY < 0) {
                         this.cursorX = old.x;
                         this.cursorY = old.y;
+                        this.saveCursor();
                         return false;
                     }
                     this.cursorX = this.text[this.cursorY].length;
                 }
             }
+            this.saveCursor();
             return true;
-        }
-
-        getChar() {
-            if (this.cursorX < this.text[this.cursorY].length) {
-                return this.text[this.cursorY][this.cursorX];
-            }
-            return "\n";
         }
 
         insertChar(char) {
             this.time = Date.now();
             if (char === "\n") {
                 if (!this.linebreak) {
+                    this.saveCursor();
                     return false;
                 }
                 const row = this.text[this.cursorY];
@@ -149,6 +156,7 @@ const TEXT = (exp) => {
                 this.text[this.cursorY].splice(this.cursorX, 0, char);
                 this.cursorX++;
             }
+            this.saveCursor();
             return true;
         }
 
@@ -156,6 +164,7 @@ const TEXT = (exp) => {
             this.time = Date.now();
             if (this.cursorX === 0) {
                 if (this.cursorY === 0) {
+                    this.saveCursor();
                     return false;
                 }
                 this.cursorY--;
@@ -167,54 +176,8 @@ const TEXT = (exp) => {
                 this.cursorX--;
                 this.text[this.cursorY].splice(this.cursorX, 1);
             }
+            this.saveCursor();
             return true;
-        }
-
-        getSize(x = 0, y = 0) {
-            p5.noStroke();
-            p5.textSize(this.textSize);
-            if (this.selected) {
-                p5.stroke(ALPHA(COLORS["lightGrey"], view.alpha));
-            }
-            let maxWidth = 0;
-            for (let i = 0; i < this.text.length; i++) {
-                const row = this.text[i].join('');
-                const width = p5.textWidth(row)
-                if (width > maxWidth) {
-                    maxWidth = width;
-                }
-            }
-            const maxHeight = this.text.length * this.textSize + Math.max(0, this.text.length - 1) * this.ySpacing;
-            return { x: maxWidth + x, y: maxHeight + y};
-        }
-
-        draw(x, y, vertical = p5.LEFT, horizontal = p5.TOP) {
-            p5.noStroke();
-            p5.textSize(this.textSize);
-            p5.textAlign(vertical, horizontal);
-            p5.fill(ALPHA(this.textColor, view.alpha));
-            if (this.selected) {
-                p5.stroke(ALPHA(COLORS["lightGrey"], view.alpha));
-            }
-            let maxWidth = 0;
-            for (let i = 0; i < this.text.length; i++) {
-                const row = this.text[i].join('');
-                const width = p5.textWidth(row)
-                if (width > maxWidth) {
-                    maxWidth = width;
-                }
-                p5.text(row, x, y + (this.textSize + this.ySpacing) * i);
-            }
-            if (this.edit && (Date.now() - this.time) % 1000 < 500) {
-                const cursorY = y + (this.textSize + this.ySpacing) * this.cursorY;
-                const row = this.text[this.cursorY].slice(0, this.cursorX).join('');
-                const cursorX = x + p5.textWidth(row);
-                p5.stroke(ALPHA(this.cursorColor, view.alpha));
-                p5.strokeWeight(this.cursorWidth);
-                p5.line(cursorX, cursorY, cursorX, cursorY + this.textSize);
-            }
-            const maxHeight = this.text.length * this.textSize + (this.text.length - 1) * this.ySpacing;
-            return { x: maxWidth + x, y: maxHeight + y};
         }
 
         setCursorByPoint(x, y, point) {
@@ -252,7 +215,6 @@ const TEXT = (exp) => {
                 for (let j = 1; j < row.length; j++) {
                     const start = (left + mid) / 2;
                     const end = (mid + right) / 2;
-                    console.log(start, end, point.x, j , row.length, x)
                     if (start <= point.x && end >= point.x) {
                         this.cursorX = j;
                         break;
@@ -262,7 +224,56 @@ const TEXT = (exp) => {
                     right = x + p5.textWidth(row.slice(0, j + 2).join(''));
                 }
             }
+            this.saveCursor();
         }
+
+        getSize(x = 0, y = 0) {
+            p5.noStroke();
+            p5.textSize(this.textSize);
+            if (this.selected) {
+                p5.stroke(ALPHA(COLORS["lightGrey"], view.alpha));
+            }
+            let maxWidth = 0;
+            for (let i = 0; i < this.text.length; i++) {
+                const row = this.text[i].join('');
+                const width = p5.textWidth(row)
+                if (width > maxWidth) {
+                    maxWidth = width;
+                }
+            }
+            const maxHeight = this.text.length * this.textSize + Math.max(0, this.text.length - 1) * this.ySpacing;
+            return { x: maxWidth + x, y: maxHeight + y };
+        }
+
+        draw(x, y, vertical = p5.LEFT, horizontal = p5.TOP) {
+            p5.noStroke();
+            p5.textSize(this.textSize);
+            p5.textAlign(vertical, horizontal);
+            p5.fill(ALPHA(this.textColor, view.alpha));
+            if (this.selected) {
+                p5.stroke(ALPHA(COLORS["lightGrey"], view.alpha));
+            }
+            let maxWidth = 0;
+            for (let i = 0; i < this.text.length; i++) {
+                const row = this.text[i].join('');
+                const width = p5.textWidth(row)
+                if (width > maxWidth) {
+                    maxWidth = width;
+                }
+                p5.text(row, x, y + (this.textSize + this.ySpacing) * i);
+            }
+            if (this.edit && (Date.now() - this.time) % 1000 < 500) {
+                const cursorY = y + (this.textSize + this.ySpacing) * this.cursorY;
+                const row = this.text[this.cursorY].slice(0, this.cursorX).join('');
+                const cursorX = x + p5.textWidth(row);
+                p5.stroke(ALPHA(this.cursorColor, view.alpha));
+                p5.strokeWeight(this.cursorWidth);
+                p5.line(cursorX, cursorY, cursorX, cursorY + this.textSize);
+            }
+            const maxHeight = this.text.length * this.textSize + (this.text.length - 1) * this.ySpacing;
+            return { x: maxWidth + x, y: maxHeight + y };
+        }
+
     }
     exp.Text = Text;
 }

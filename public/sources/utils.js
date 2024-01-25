@@ -52,6 +52,12 @@ const UTILS = (exp) => {
       const negative = this.side(vector) < 0 ? -1 : 1;
       return Math.acos(this.dot(vector) / this.distance() / vector.distance()) * negative;
     }
+
+    rotate(angle) {
+      const x = this.x * Math.cos(angle) - this.y * Math.sin(angle);
+      const y = this.x * Math.sin(angle) + this.y * Math.cos(angle);
+      return Vec(x, y);
+    }
   }
 
   function Vec(x, y) {
@@ -107,12 +113,21 @@ const UTILS = (exp) => {
   const view = { alpha: 255, viewpoint: Vec(0, 0), scale: 1 };
   exp.view = view;
 
+  async function hash(string) {
+    const encoded = new TextEncoder().encode(string);
+    return crypto.subtle.digest('SHA-256', encoded).then((buffer) => {
+      return Array.from(new Uint8Array(buffer)).map((bytes) => bytes.toString(16).padStart(2, '0')).join('');
+    });
+  }
+  exp.hash = hash;
+
+
   exp.applyView = (point, v) => { // for more advanced transformations use the Matrix library
     if (v === undefined) {
       v = view;
     }
     const center = Vec(p5.windowWidth / 2, p5.windowHeight / 2);
-    const scaled = point.minus(center).times(1/v.scale).plus(center);
+    const scaled = point.minus(center).times(1 / v.scale).plus(center);
     const translated = scaled.minus(v.viewpoint);
     return translated;
   }

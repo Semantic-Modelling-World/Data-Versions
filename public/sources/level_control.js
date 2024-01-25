@@ -8,6 +8,7 @@ let CONTROL = (exp) => {
     const CircleButton = exp.CircleButton;
     const SquareButton = exp.SquareButton;
     const UUID = exp.UUID;
+    const hash = exp.hash;
     const COLORS = exp.COLORS;
     const Animation = exp.Animation;
     const animator = exp.animator;
@@ -63,7 +64,7 @@ let CONTROL = (exp) => {
         create_edge: [2],
         edit_edge: [2],
         delete_edge: [1],
-        move_graph: [2],
+        move_graph: [0],
         enter_edit: ["Enter"],
         delete_char: ["Backspace"],
         escape_edit: ["Escape"],
@@ -340,10 +341,15 @@ let CONTROL = (exp) => {
         keyChecks = [keyCheck];
     }
 
-    function spawn_copy(copy, vec) {
+    function spawn_copy(original, copy) {
         const originalPos = unapplyView(copy.pos);
         const originalView = { ...view };
         const node = copy;
+        const length = 400;
+        const rotation = p5.PI / 6 + p5.PI / 10;
+        const vec = original.spawn_vector.times(length);
+        copy.spawn_vector = original.spawn_vector;
+        original.spawn_vector = vec.rotate(rotation).normalized();
 
         const ani = new Animation(f => { node.pos = applyView(originalPos, originalView).plus(vec.times(f)) }, node, () => {
             let equalNode = graph.findNode(copy);
@@ -409,14 +415,7 @@ let CONTROL = (exp) => {
                     graph.addEdge(predecessor);
                     const successor = new Edge(SUCCESSOR, mainNode, mainCopy);
                     graph.addEdge(successor);
-
-                    const length = 400;
-                    let vec = Vec(1, windowHeight / windowWidth);
-                    const orth = vec.orthogonal().normalized();
-                    const inter = Math.random() - 0.5;
-                    vec = vec.normalized().times(1 - inter).plus(orth.times(inter)).normalized().times(length);
-
-                    spawn_copy(mainCopy, vec);
+                    spawn_copy(mainNode, mainCopy);
 
                     for (let i = 0; i < subs.length; i++) {
                         graph.addNode(subsCopy[i]);
@@ -427,7 +426,7 @@ let CONTROL = (exp) => {
                             subEdge.editable = false;
                         }
                         graph.addEdge(subEdge);
-                        spawn_copy(subsCopy[i], vec);
+                        spawn_copy(subs[i], subsCopy[i]);
                     }
                 } else {
                     originalEditNode.text = editNode.text;
@@ -564,13 +563,6 @@ let CONTROL = (exp) => {
             }
         })
         keyChecks = nextKeyChecks;
-    }
-
-    async function hash(string) {
-        const encoded = new TextEncoder().encode(string);
-        return crypto.subtle.digest('SHA-256', encoded).then((buffer) => {
-            return Array.from(new Uint8Array(buffer)).map((bytes) => bytes.toString(16).padStart(2, '0')).join('');
-        });
     }
 
     function startLevel1() {

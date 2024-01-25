@@ -3,7 +3,7 @@ import { TEXT } from './text.js';
 import { ANIMATION } from './animation.js';
 import { GRAPH } from './graph.js';
 import { BUTTONS } from './buttons.js';
-import { CONTROL } from './control.js';
+import { CONTROL } from './level_control.js';
 
 document.addEventListener('contextmenu', event => event.preventDefault());
 

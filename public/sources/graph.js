@@ -31,6 +31,7 @@ const GRAPH = (exp) => {
             this.editable = true;
             this.visible = true;
             this.selected = false;
+            this.spawn_vector = Vec(1, 0.5);  // direction in which copied nodes spawn
             this.resize();
         }
 
