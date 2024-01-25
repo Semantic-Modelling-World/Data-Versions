@@ -1,13 +1,13 @@
 const TEXT = (exp) => {
     const p5 = exp.p5;
-    const view = exp.view;
     const applyView = exp.applyView;
-    const ALPHA = exp.ALPHA;
+    const applyAlpha = exp.applyAlpha;
     const COLORS = exp.COLORS;
 
     class Text {
         static textSize = 15;
         static ySpacing = 5;
+        static touchMargin = 2;
         constructor(text, linebreak = true, textSize = Text.textSize, textColor = COLORS["black"]) {
             this.linebreak = linebreak;
             this.textSize = textSize;
@@ -170,8 +170,7 @@ const TEXT = (exp) => {
                 this.cursorY--;
                 const row = this.text[this.cursorY];
                 this.cursorX = row.length;
-                row.concat(this.text[this.cursorY + 1]);
-                this.text.splice(this.cursorY, 2, row);
+                this.text.splice(this.cursorY, 2, row.concat(this.text[this.cursorY + 1]));
             } else {
                 this.cursorX--;
                 this.text[this.cursorY].splice(this.cursorX, 1);
@@ -185,9 +184,6 @@ const TEXT = (exp) => {
             point = applyView(point);
             p5.noStroke();
             p5.textSize(this.textSize);
-            if (this.selected) {
-                p5.stroke(ALPHA(COLORS["lightGrey"], view.alpha));
-            }
             if (point.y <= y) {
                 this.cursorY = 0;
             } else if (point.y >= y + (this.textSize + this.ySpacing) * this.text.length) {
@@ -230,9 +226,6 @@ const TEXT = (exp) => {
         getSize(x = 0, y = 0) {
             p5.noStroke();
             p5.textSize(this.textSize);
-            if (this.selected) {
-                p5.stroke(ALPHA(COLORS["lightGrey"], view.alpha));
-            }
             let maxWidth = 0;
             for (let i = 0; i < this.text.length; i++) {
                 const row = this.text[i].join('');
@@ -247,12 +240,15 @@ const TEXT = (exp) => {
 
         draw(x, y, vertical = p5.LEFT, horizontal = p5.TOP) {
             p5.noStroke();
+            if (this.selected) {
+                const size = this.getSize();
+                p5.fill(applyAlpha(COLORS["lightGrey"]));
+                p5.rect(x-Text.touchMargin, y-Text.touchMargin, size.x+Text.touchMargin*2, size.y+Text.touchMargin*2, 5);
+            }
+            p5.noStroke();
             p5.textSize(this.textSize);
             p5.textAlign(vertical, horizontal);
-            p5.fill(ALPHA(this.textColor, view.alpha));
-            if (this.selected) {
-                p5.stroke(ALPHA(COLORS["lightGrey"], view.alpha));
-            }
+            p5.fill(applyAlpha(this.textColor));
             let maxWidth = 0;
             for (let i = 0; i < this.text.length; i++) {
                 const row = this.text[i].join('');
@@ -266,7 +262,7 @@ const TEXT = (exp) => {
                 const cursorY = y + (this.textSize + this.ySpacing) * this.cursorY;
                 const row = this.text[this.cursorY].slice(0, this.cursorX).join('');
                 const cursorX = x + p5.textWidth(row);
-                p5.stroke(ALPHA(this.cursorColor, view.alpha));
+                p5.stroke(applyAlpha(this.cursorColor));
                 p5.strokeWeight(this.cursorWidth);
                 p5.line(cursorX, cursorY, cursorX, cursorY + this.textSize);
             }

@@ -3,7 +3,7 @@ const GRAPH = (exp) => {
     const Vec = exp.Vec;
     const TwoD = exp.TwoD;
     const COLORS = exp.COLORS;
-    const ALPHA = exp.ALPHA;
+    const applyAlpha = exp.applyAlpha;
     const view = exp.view;
     const applyView = exp.applyView;
     const Text = exp.Text;
@@ -79,14 +79,14 @@ const GRAPH = (exp) => {
             }
             this.resize();
             if (this.selected) {
-                p5.stroke(ALPHA(COLORS["lightGrey"], view.alpha));
+                p5.stroke(applyAlpha(COLORS["lightGrey"]));
             } else {
                 p5.noStroke();
             }
             if (!this.mutable) {
-                p5.fill(ALPHA(COLORS["lightBlue"], view.alpha));
+                p5.fill(applyAlpha(COLORS["lightBlue"]));
             } else {
-                p5.fill(ALPHA(COLORS["mediumOrange"], view.alpha));
+                p5.fill(applyAlpha(COLORS["mediumOrange"]));
             }
 
             p5.strokeWeight(Node.strokeWeight);
@@ -105,6 +105,7 @@ const GRAPH = (exp) => {
         static triangle_height = 20;
         static triangle_width = 15;
         static separator = new Text(", ");
+        static touchMargin = 2;
 
         constructor(text, start, end) {
             this.id = exp.id++;
@@ -205,24 +206,27 @@ const GRAPH = (exp) => {
             Mat.rotate(-angle)
             if (-diff.x < 0) {
                 Mat.scaleX(-1);
-                Mat.scaleX(-1);
+                Mat.scaleY(-1);
             }
             let y = textSizes.y / 3;
             y = startBorder.x < endBorder.x ? - 4 * y : y;
             Mat.translate(-textSizes.x / 2, y);
-            var invMat = Mat.getInverse();
-            p5.fill(0, 0, 0, 100);
             p5.noStroke();
             let start = { x: 0, y: 0 };
             for (let i = 0; i < this.texts.length; i++) {
                 const offset = this.texts[i].getSize(start.x, 0, false);
                 const vec = Vec(offset.x, offset.y).minus(Vec(start.x, 0));
-                const points = [start.x, 0, start.x, vec.y, start.x + vec.x, vec.y, start.x + vec.x, 0];
-                // const points = Mat.applyToArray([start.x, 0, start.x + vec.x, 0, start.x + vec.x, start.y + vec.y, start.x, vec.y]);
-                // p5.triangle(points[0], points[1], points[2], points[3], points[4], points[5]);
-                // p5.triangle(points[2], points[3], points[4], points[5], points[6], points[7]);
-                const invPoint = invMat.applyToArray([point.x, point.y]);
-                if (TwoD.pointIntersectRect(Vec(invPoint[0], invPoint[1]), Vec(points[0], points[1]), Vec(points[2], points[3]), Vec(points[4], points[5]), Vec(points[6], points[7]))) {
+                const points = Mat.applyToArray([
+                    start.x - Edge.touchMargin,
+                    -Edge.touchMargin,
+                    start.x - Edge.touchMargin,
+                    vec.y + Edge.touchMargin,
+                    start.x + vec.x + Edge.touchMargin,
+                    vec.y + Edge.touchMargin,
+                    start.x + vec.x + Edge.touchMargin,
+                    -Edge.touchMargin]);
+                if (TwoD.pointIntersectRect(point, Vec(points[0], points[1]), Vec(points[2], points[3]),
+                    Vec(points[4], points[5]), Vec(points[6], points[7]))) {
                     return this.texts[i];
                 }
                 if (this.texts.length > 1 && i + 1 !== this.texts.length) {
@@ -262,7 +266,7 @@ const GRAPH = (exp) => {
                 const orthodiff = diff.orthogonal().normalized();
                 const left = bottom.plus(orthodiff.times(-width / 2));
                 const right = bottom.plus(orthodiff.times(width / 2));
-                p5.fill(ALPHA(COLORS["lightBlue"], view.alpha));
+                p5.fill(applyAlpha(COLORS["lightBlue"]));
                 p5.noStroke();
                 p5.triangle(left.x, left.y, endBorder.x, endBorder.y, right.x, right.y);
                 view.alpha = oldAlpha;
@@ -270,7 +274,7 @@ const GRAPH = (exp) => {
             }
 
             p5.strokeWeight(Edge.lineWidth);
-            p5.stroke(ALPHA(COLORS["lightBlue"], view.alpha));
+            p5.stroke(applyAlpha(COLORS["lightBlue"]));
             p5.line(startBorder.x, startBorder.y, bottom.x, bottom.y);
 
             const mid = startBorder.plus(diff.times(0.5));

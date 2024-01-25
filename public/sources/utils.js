@@ -71,6 +71,7 @@ const UTILS = (exp) => {
     }
 
     static pointIntersectRect(point, p1, p2, p3, p4) {
+      // Can be any rotated rectangle
       const rectArea = p1.minus(p2).distance() * p1.minus(p3).distance();
       const triArea = TwoD.triangleArea(p1, point, p4) + TwoD.triangleArea(p4, point, p3) + TwoD.triangleArea(p3, point, p2) + TwoD.triangleArea(point, p2, p1);
       return triArea <= rectArea;
@@ -93,34 +94,8 @@ const UTILS = (exp) => {
   };
   exp.COLORS = COLORS;
 
-
-  function ALPHA(color, a) {
-    if (color.length < 3) {
-      return color.concat([a]);
-    }
-    const newColor = [...color];
-    newColor[3] = a;
-    return newColor;
-  }
-  exp.ALPHA = ALPHA;
-
-
-  function UUID() {
-    return crypto.randomUUID().slice(0, 8);
-  }
-  exp.UUID = UUID;
-
   const view = { alpha: 255, viewpoint: Vec(0, 0), scale: 1 };
   exp.view = view;
-
-  async function hash(string) {
-    const encoded = new TextEncoder().encode(string);
-    return crypto.subtle.digest('SHA-256', encoded).then((buffer) => {
-      return Array.from(new Uint8Array(buffer)).map((bytes) => bytes.toString(16).padStart(2, '0')).join('');
-    });
-  }
-  exp.hash = hash;
-
 
   exp.applyView = (point, v) => { // for more advanced transformations use the Matrix library
     if (v === undefined) {
@@ -141,6 +116,33 @@ const UTILS = (exp) => {
     const scaled = translated.minus(center).times(v.scale).plus(center);
     return scaled;
   }
+
+  function applyAlpha(color, alpha) {
+    if (alpha === undefined) {
+      alpha = view.alpha;
+    }
+    if (color.length < 4) {
+      return color.concat([alpha]);
+    }
+    const newColor = [...color];
+    newColor[3] = alpha;
+    return newColor;
+  }
+  exp.applyAlpha = applyAlpha;
+
+
+  function UUID() {
+    return crypto.randomUUID().slice(0, 8);
+  }
+  exp.UUID = UUID;
+
+  async function hash(string) {
+    const encoded = new TextEncoder().encode(string);
+    return crypto.subtle.digest('SHA-256', encoded).then((buffer) => {
+      return Array.from(new Uint8Array(buffer)).map((bytes) => bytes.toString(16).padStart(2, '0')).join('');
+    });
+  }
+  exp.hash = hash;
 }
 
 export { UTILS };
