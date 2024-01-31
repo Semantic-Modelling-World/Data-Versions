@@ -155,7 +155,7 @@ let CONTROL = (exp) => {
 
         if (isIn(event.button, controls.edit_node) && editNode !== undefined && editNode.touches(mouse)) {
             const textPos = editNode.pos.plus(Node.textPadding);
-            editNode.text.setCursorByPoint(textPos.x - editNode.width, textPos.y - editNode.height, offsettedMouse);
+            editNode.text.setCursorByPoint(textPos.x, textPos.y, offsettedMouse);
             reset();
             return;
         }
@@ -243,26 +243,27 @@ let CONTROL = (exp) => {
                     graph.deleteNode(node);
                 } else if (isIn(event.button, controls.edit_node)) {
                     editNode = nodes[touching_nodes[touching_nodes.length - 1]];
-                    if (editNode.visible && editNode.editable) {
-                        if (edge === undefined || edge.start.id === editNode.id) {
+                    if (editNode.visible && editNode.editable && (edge === undefined || edge.start.id === editNode.id)) {
                             oldEditNode = editNode.copy();
                             editNode.text.setEdit(true);
                             const textPos = editNode.pos.plus(Node.textPadding);
-                            editNode.text.setCursorByPoint(textPos.x - editNode.width, textPos.y - editNode.height, offsettedMouse);
-                        }
+                            editNode.text.setCursorByPoint(textPos.x, textPos.y, offsettedMouse);
+                    } else {
+                        editNode = undefined;
                     }
                 }
             } else {
                 for (let i = graph.edges.length - 1; i >= 0; i--) {
                     const edge = graph.edges[i];
                     const textIndex = edge.touches_text(offsettedMouse);
-                    if (edge.visible && edge.mutable && textIndex !== undefined) {
-                        if (isIn(event.button, controls.delete_edge)) {
+                    if (textIndex !== undefined) {
+                        const text = edge.texts[textIndex];
+                        if (isIn(event.button, controls.delete_edge) && text.getText() === COMPATIBLE) {
                             edge.texts.splice(textIndex, 1);
                             if (edge.texts.length === 0) {
                                 graph.deleteEdge(edge);
                             }
-                        }/* else if (isIn(event.button, controls.edit_edge)) {
+                        }/* else if (edge.editable && isIn(event.button, controls.edit_edge)) {
                             editText = edge.texts[textIndex];
                             editText.setEdit(true);
                             const invMat = Mat.getInverse();  // hacky solution
@@ -414,10 +415,6 @@ let CONTROL = (exp) => {
                         graph.addNode(subsCopy[i]);
                         subsCopy[i].main = mainCopy;
                         const subEdge = new Edge(subsCopy[i].edgeText, mainCopy, subsCopy[i]);
-                        if (subsCopy[i].edgeText === BELONGSTO) {
-                            subEdge.mutable = false;
-                            subEdge.editable = false;
-                        }
                         graph.addEdge(subEdge);
                         spawn_copy(subs[i], subsCopy[i]);
                     }
@@ -428,18 +425,6 @@ let CONTROL = (exp) => {
             editText.setEdit(false);
         }
         reset_edit();
-    }
-
-    function reset() {
-        draggedNode = undefined;
-        mouseOffset = Vec(0, 0);
-        node = undefined;
-        edge = undefined;
-        if (originalEdge !== undefined) {
-            originalEdge.visible = true;
-            originalEdge = undefined;
-        }
-        changeViewpoint = false;
     }
 
     function reset_edit() {
@@ -462,6 +447,18 @@ let CONTROL = (exp) => {
         view.scale = 1;
         reset_edit();
         reset();
+    }
+
+    function reset() {
+        draggedNode = undefined;
+        mouseOffset = Vec(0, 0);
+        node = undefined;
+        edge = undefined;
+        if (originalEdge !== undefined) {
+            originalEdge.visible = true;
+            originalEdge = undefined;
+        }
+        changeViewpoint = false;
     }
 
     p5.draw = () => {
@@ -574,8 +571,6 @@ let CONTROL = (exp) => {
         data.edgeText = BELONGSTO;
         graph.addNode(data);
         const belongsto = new Edge(BELONGSTO, uuid, data);
-        belongsto.editable = false;
-        belongsto.mutable = false;
         graph.addEdge(belongsto);
 
         uuid.subs = [data];
@@ -591,8 +586,6 @@ let CONTROL = (exp) => {
             Text.textSize * 2,
             (Text.textSize + Node.textPadding.y * 2) / 2);
         uuid.main = uuid;
-        uuid.mutable = false;
-        uuid.editable = false;
         graph.addNode(uuid);
 
         text = "00110011110";
@@ -605,8 +598,6 @@ let CONTROL = (exp) => {
         data.edgeText = BELONGSTO;
         graph.addNode(data);
         const belongsto = new Edge(BELONGSTO, uuid, data);
-        belongsto.editable = false;
-        belongsto.mutable = false;
         graph.addEdge(belongsto);
 
         if (lvl === "4") {

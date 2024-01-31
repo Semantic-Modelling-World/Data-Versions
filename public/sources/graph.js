@@ -11,8 +11,8 @@ const GRAPH = (exp) => {
 
     class Node {
         static textPadding = Vec(15, 16);
-        static minWidth = (Text.getWidth("O") + Node.textPadding.x * 2) / 2;
-        static minHeight = (Text.textSize + Node.textPadding.y * 2) / 2;
+        static minWidth = (Text.getWidth("O") + Node.textPadding.x * 2);
+        static minHeight = (Text.textSize + Node.textPadding.y * 2);
         static rounding = 10;
         static strokeWeight = 3;
 
@@ -56,17 +56,17 @@ const GRAPH = (exp) => {
 
         touches(point) {
             point = applyView(point);
-            const p1 = this.pos.plus(Vec(-this.width, -this.height));
-            const p2 = this.pos.plus(Vec(this.width, -this.height));
-            const p3 = this.pos.plus(Vec(-this.width, this.height));
-            const p4 = this.pos.plus(Vec(this.width, this.height));
+            const p1 = this.pos;
+            const p2 = this.pos.plus(Vec(this.width, 0));
+            const p3 = this.pos.plus(Vec(this.width, this.height));
+            const p4 = this.pos.plus(Vec(0, this.height));
             const res = TwoD.pointIntersectRect(point, p1, p2, p3, p4);
             return res;
         }
 
         resize() {
             let size = this.text.getSize();
-            size = { x: size.x / 2 + Node.textPadding.x, y: size.y / 2 + Node.textPadding.y }
+            size = { x: size.x + Node.textPadding.x * 2, y: size.y + Node.textPadding.y * 2}
             if (this.width != size.x || this.height != size.y) {
                 this.width = Math.max(this.minWidth, size.x);
                 this.height = Math.max(this.minHeight, size.y);
@@ -90,9 +90,9 @@ const GRAPH = (exp) => {
             }
 
             p5.strokeWeight(Node.strokeWeight);
-            p5.rect(this.pos.x - this.width, this.pos.y - this.height, this.width * 2, this.height * 2, Node.rounding);
+            p5.rect(this.pos.x, this.pos.y, this.width, this.height, Node.rounding);
 
-            const offset = this.pos.minus(Vec(this.width, this.height)).plus(Node.textPadding);
+            const offset = this.pos.plus(Node.textPadding);
             this.text.draw(offset.x, offset.y);
         }
     }
@@ -112,8 +112,6 @@ const GRAPH = (exp) => {
             this.end = end;
             this.visible = true;
             this.selected = false;
-            this.mutable = true;
-            this.editable = true;
         }
 
         copy() {
@@ -124,31 +122,32 @@ const GRAPH = (exp) => {
             edge.end = this.end;
             edge.visible = true;
             edge.selected = false;
-            edge.mutable = this.mutable;
-            edge.editable = this.editable;
             return edge;
         }
 
         getBorderPoint(start, end) {
-            const diff = end.pos.minus(start.pos);
+            const startSize = Vec(start.width / 2, start.height / 2);
+            const endSize = Vec(end.width / 2, end.height / 2);
+            const startCenter = start.pos.plus(startSize);
+            const endCenter = end.pos.plus(endSize);
+            const diff = endCenter.minus(startCenter);
             if (diff.x === 0 && diff.y === 0) {
                 return undefined;
             } else if (diff.x === 0) {
-                return start.pos.plus(Vec(0, start.height * Math.sign(diff.y)));
+                return startCenter.plus(Vec(0, startSize.y * Math.sign(diff.y)));
             } else if (diff.y === 0) {
-                return start.pos.plus(Vec(start.width * Math.sign(diff.x), 0));
-            } else if (start.height === 0 || start.width === 0) {
-                return start.pos;
+                return startCenter.plus(Vec(startSize.x * Math.sign(diff.x), 0));
+            } else if (startSize.y === 0 || startSize.x === 0) {
+                return startCenter;
             }
-            const relative = Vec(diff.x * start.height, diff.y * start.width);
+            const relative = Vec(diff.x * startSize.y, diff.y * startSize.x);
             let offset = undefined;
-            const size = Vec(start.width, start.height);
             if (Math.abs(relative.y / relative.x) <= 1) {
-                offset = size.multi(Vec(Math.sign(relative.x), relative.y / Math.abs(relative.x)));
+                offset = startSize.multi(Vec(Math.sign(relative.x), relative.y / Math.abs(relative.x)));
             } else {
-                offset = size.multi(Vec(relative.x / Math.abs(relative.y), Math.sign(relative.y)));
+                offset = startSize.multi(Vec(relative.x / Math.abs(relative.y), Math.sign(relative.y)));
             }
-            return start.pos.plus(offset);
+            return startCenter.plus(offset);
         }
 
         getBorderPoints() {
@@ -224,16 +223,6 @@ const GRAPH = (exp) => {
                     vec.y,
                     start.x + vec.x,
                     0];
-                points = [
-                    points[0] - Text.touchMargin, // Somehow the touchmargin is not
-                    points[1] - Text.touchMargin,
-                    points[2] - Text.touchMargin,
-                    points[3] + Text.touchMargin,
-                    points[4] + Text.touchMargin,
-                    points[5] + Text.touchMargin,
-                    points[6] + Text.touchMargin,
-                    points[7] - Text.touchMargin
-                ];
                 points = Mat.applyToArray(points);
                 if (TwoD.pointIntersectRect(point, Vec(points[0], points[1]), Vec(points[2], points[3]),
                     Vec(points[4], points[5]), Vec(points[6], points[7]))) {

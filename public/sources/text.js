@@ -242,7 +242,7 @@ const TEXT = (exp) => {
             if (this.selected) {
                 const size = this.getSize();
                 p5.fill(applyAlpha(COLORS["lightGrey"]));
-                p5.rect(x - Text.touchMargin, y - Text.touchMargin, size.x + Text.touchMargin * 2, size.y + Text.touchMargin * 2);
+                p5.rect(x, y, size.x, size.y, 5);
             }
             p5.noStroke();
             p5.textSize(this.textSize);
