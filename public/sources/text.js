@@ -12,7 +12,9 @@ const TEXT = (exp) => {
             this.textSize = textSize;
             this.textColor = textColor;
             this.ySpacing = Text.ySpacing;
+
             this.edit = false;
+            this.selected = false;
             this.cursorX = 0;
             this.cursorY = 0;
             this.saveCursor();
@@ -20,7 +22,6 @@ const TEXT = (exp) => {
             this.cursorWidth = 1;
             this.time = Date.now();
             this.text = []
-            this.selected = false;
             this.setText(text);
         }
 
@@ -36,7 +37,9 @@ const TEXT = (exp) => {
             text.textSize = this.textSize;
             text.textColor = this.textColor;
             text.ySpacing = this.ySpacing;
+
             text.edit = false;
+            text.selected = false;
             text.cursorX = this.cursorX;
             text.cursorY = this.cursorY;
             text.oldCursor = this.oldCursor;
@@ -44,7 +47,6 @@ const TEXT = (exp) => {
             text.cursorWidth = this.cursorWidth;
             text.text = this.text.map(row => row.slice());
             text.time = this.time;
-            text.selected = false;
             return text;
         }
 
@@ -65,7 +67,7 @@ const TEXT = (exp) => {
             return this.getText() === text.getText();
         }
 
-        setEdit(edit) {
+        setEditMode(edit) {
             this.time = Date.now();
             this.edit = edit;
         }
@@ -83,6 +85,7 @@ const TEXT = (exp) => {
         }
 
         saveCursor() {
+            // Used for intuitive 2D Cursor moving (i.e. the original x-level needs to be maintained when a row is too short)
             this.oldCursor = { x: this.cursorX, y: this.cursorY };
         }
 
@@ -91,6 +94,7 @@ const TEXT = (exp) => {
         }
 
         move2DCursor(x, y) {
+            // Moves cursor on the text viewed as a 2D text file
             this.time = Date.now();
             if (x !== 0) {
                 this.cursorX += x;
@@ -103,6 +107,7 @@ const TEXT = (exp) => {
         }
 
         moveCursor(n) {
+            // Moves cursor on the text viewed as a 1D text file
             this.time = Date.now();
             if (n === 0) {
                 this.saveCursor();
@@ -179,6 +184,7 @@ const TEXT = (exp) => {
         }
 
         setCursorByPoint(x, y, point) {
+            // Takes the current text position and a point and returns where that point touches the text
             this.time = Date.now();
             point = applyView(point);
             p5.noStroke();
@@ -272,5 +278,3 @@ const TEXT = (exp) => {
     }
     exp.Text = Text;
 }
-
-export { TEXT };

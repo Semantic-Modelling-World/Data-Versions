@@ -47,5 +47,3 @@ const BUTTONS = (exp) => {
     }
     exp.SquareButton = SquareButton;
 }
-
-export { BUTTONS };

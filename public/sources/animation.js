@@ -85,5 +85,3 @@ const ANIMATION = (exp) => {
     }
     exp.animator = new Animator([]);
 }
-
-export { ANIMATION };

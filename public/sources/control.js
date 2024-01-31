@@ -18,7 +18,6 @@ let CONTROL = (exp) => {
     const applyView = exp.applyView;
     const unapplyView = exp.unapplyView;
 
-    const COMPATIBLE = "compatible";
     const PREDECESSOR = "predecessor";
     const SUCCESSOR = "successor";
     const BELONGSTO = "belongs to";
@@ -35,11 +34,7 @@ let CONTROL = (exp) => {
 
     let draggedNode = undefined;
     let mouseOffset = Vec(0, 0);
-    let node = undefined;
-    let edge = undefined;
     let editNode = undefined;
-    let editText = undefined;
-    let originalEdge = undefined;
     let oldEditNode = undefined;
     let changeViewpoint = false;
 
@@ -55,14 +50,14 @@ let CONTROL = (exp) => {
     let levelTextPadding = Vec(20, 20);
     let levelText = "Lv.";
     let level = "1";
+    const helpText = "- Move Nodes with Left Click\n- Edit nodes with Right Click\n- Complete editing with Escape\n- Zoom with the Mouse Wheel\n- Move around with Left Click";
+    let helpNode = new Node(helpText, undefined, COLORS["lightGrey"]);
+    let helpNodeSettings = { pos: Vec(0, 0), alpha: 200, visible: false };
+    let oldHelpNodeSettings = { ...helpNodeSettings };
 
     let controls = {
         move_node: [0],
         edit_node: [2],
-        delete_node: [], // [1],  // Uncomment if nodes should be deletable
-        create_edge: [2],
-        edit_edge: [], // [2],  // Feature does not always work (e.g. when view changes, then CursorByPoint does not find the right cursor position)
-        delete_edge: [1],
         move_graph: [0],
         enter_edit: ["Enter"],
         delete_char: ["Backspace"],
@@ -91,8 +86,7 @@ let CONTROL = (exp) => {
         if (isIn(event.button, controls.edit_node) && editNode !== undefined && editNode.touches(mouse)) {
             return;
         }
-        set_edit();
-        reset();
+        complete_node_editing();
         if ((reset_button !== undefined && reset_button.touches(reset_pos(), mouse)) ||
             (right_arrow_button !== undefined && right_arrow_button.touches(right_arrow_pos(), mouse)) ||
             (left_arrow_button !== undefined && left_arrow_button.touches(left_arrow_pos(), mouse)) ||
@@ -102,19 +96,6 @@ let CONTROL = (exp) => {
                 draggedNode = nodes[touching_nodes[touching_nodes.length - 1]];
                 mouseOffset = unapplyView(draggedNode.pos).minus(mouse);
                 animator.cancel(draggedNode);
-            } else if (isIn(event.button, controls.create_edge)) {
-                const start = nodes[touching_nodes[touching_nodes.length - 1]];
-                mouseOffset = Vec(0, 0);
-                edge = new Edge(
-                    COMPATIBLE,
-                    start,
-                    {
-                        pos: applyView(mouse),
-                        width: 0,
-                        height: 0,
-                        id: exp.id++,
-                        dummy: true
-                    });
             }
         } else {
             if (isIn(event.button, controls.move_graph)) {
@@ -128,13 +109,6 @@ let CONTROL = (exp) => {
         const mouse = Vec(p5.mouseX, p5.mouseY);
         if (draggedNode !== undefined) {
             draggedNode.pos = applyView(mouse.plus(mouseOffset));
-        }
-        if (edge !== undefined) {
-            if (edge.end.dummy !== undefined) {
-                edge.end.pos = applyView(mouse.plus(mouseOffset));
-            } else {
-                edge.start.pos = applyView(mouse.plus(mouseOffset));
-            }
         }
         if (changeViewpoint === true) {
             view.viewpoint = mouse.plus(mouseOffset).times(1 / view.scale);
@@ -156,127 +130,66 @@ let CONTROL = (exp) => {
         if (isIn(event.button, controls.edit_node) && editNode !== undefined && editNode.touches(mouse)) {
             const textPos = editNode.pos.plus(Node.textPadding);
             editNode.text.setCursorByPoint(textPos.x, textPos.y, offsettedMouse);
-            reset();
+            reset_dragging();
             return;
         }
-        set_edit();
+        complete_node_editing();
 
-        if (node === undefined) {
-            if (draggedNode === undefined) {
-                if (edge === undefined) {
-                    if (reset_button !== undefined && reset_button.touches(reset_pos(), mouse)) {
-                        if (isIn(event.button, controls.press_button)) {
-                            if (level === "1") {
-                                return startLevel1();
-                            } else if (level === "2") {
-                                return startLevel2();
-                            } else if (level === "3") {
-                                return startLevel3();
-                            } else if (level === "4") {
-                                return startLevel4();
-                            }
-                        }
-                    } else if (help_button !== undefined && help_button.touches(help_pos(), mouse)) {
-                        if (isIn(event.button, controls.press_button)) {
-                            // TODO: Open Help Dialog
-                            if (level === "1") {
-                                // TODO:
-                            } else if (level === "2") {
-                                // TODO:
-                            } else if (level === "3") {
-                                // TODO:
-                            } else if (level === "4") {
-                                // TODO:
-                            }
-                        }
-                    } else if (right_arrow_button !== undefined && right_arrow_button.touches(right_arrow_pos(), mouse)) {
-                        if (isIn(event.button, controls.press_button)) {
-                            if (level === "1") {
-                                return startLevel2();
-                            } else if (level === "2") {
-                                return startLevel3();
-                            } else if (level === "3") {
-                                return startLevel4();
-                            } else if (level === "4") {
-                                return startLevel1();
-                            }
-                        }
-                    } else if (left_arrow_button !== undefined && left_arrow_button.touches(left_arrow_pos(), mouse)) {
-                        if (isIn(event.button, controls.press_button)) {
-                            if (level === "1") {
-                                return startLevel4();
-                            } else if (level === "2") {
-                                return startLevel1();
-                            } else if (level === "3") {
-                                return startLevel2();
-                            } else if (level === "4") {
-                                return startLevel3();
-                            }
-                        }
+        if (draggedNode === undefined) {
+            if (reset_button !== undefined && reset_button.touches(reset_pos(), mouse)) {
+                if (isIn(event.button, controls.press_button)) {
+                    if (level === "1") {
+                        return startLevel1();
+                    } else if (level === "2") {
+                        return startLevel2();
+                    } else if (level === "3") {
+                        return startLevel3();
+                    } else if (level === "4") {
+                        return startLevel4();
                     }
                 }
-            }
-            if (edge !== undefined) {
-                if (touching_nodes.length > 0) {
-                    if (isIn(event.button, controls.create_edge)) {
-                        edge.end = nodes[touching_nodes[touching_nodes.length - 1]];
-                        if (edge.start.id !== edge.end.id) {
-                            graph.addEdge(edge);
-                        }
-                    } else if (isIn(event.button, controls.move_edge)) {
-                        const other = nodes[touching_nodes[touching_nodes.length - 1]];
-                        if (edge.end.dummy !== undefined) {
-                            edge.end = other;
-                        } else {
-                            edge.start = other;
-                        }
-                        if (edge.start.id !== edge.end.id) {
-                            graph.deleteEdge(originalEdge);
-                            graph.addEdge(edge);
-                        }
+            } else if (help_button !== undefined && help_button.touches(help_pos(), mouse)) {
+                helpNodeSettings.visible = !helpNodeSettings.visible;
+            } else if (right_arrow_button !== undefined && right_arrow_button.touches(right_arrow_pos(), mouse)) {
+                if (isIn(event.button, controls.press_button)) {
+                    if (level === "1") {
+                        return startLevel2();
+                    } else if (level === "2") {
+                        return startLevel3();
+                    } else if (level === "3") {
+                        return startLevel4();
+                    } else if (level === "4") {
+                        return startLevel1();
                     }
                 }
-            }
-            if (touching_nodes.length > 0) {
-                if (isIn(event.button, controls.delete_node)) {
-                    const node = nodes[touching_nodes[touching_nodes.length - 1]];
-                    graph.deleteNode(node);
-                } else if (isIn(event.button, controls.edit_node)) {
-                    editNode = nodes[touching_nodes[touching_nodes.length - 1]];
-                    if (editNode.visible && editNode.editable && (edge === undefined || edge.start.id === editNode.id)) {
-                            oldEditNode = editNode.copy();
-                            editNode.text.setEdit(true);
-                            const textPos = editNode.pos.plus(Node.textPadding);
-                            editNode.text.setCursorByPoint(textPos.x, textPos.y, offsettedMouse);
-                    } else {
-                        editNode = undefined;
-                    }
-                }
-            } else {
-                for (let i = graph.edges.length - 1; i >= 0; i--) {
-                    const edge = graph.edges[i];
-                    const textIndex = edge.touches_text(offsettedMouse);
-                    if (textIndex !== undefined) {
-                        const text = edge.texts[textIndex];
-                        if (isIn(event.button, controls.delete_edge) && text.getText() === COMPATIBLE) {
-                            edge.texts.splice(textIndex, 1);
-                            if (edge.texts.length === 0) {
-                                graph.deleteEdge(edge);
-                            }
-                        }/* else if (edge.editable && isIn(event.button, controls.edit_edge)) {
-                            editText = edge.texts[textIndex];
-                            editText.setEdit(true);
-                            const invMat = Mat.getInverse();  // hacky solution
-                            const point = invMat.applyToArray([offsettedMouse.x, offsettedMouse.y])
-                            editText.setCursorByPoint(0, 0, Vec(point[0], point[1]));
-                            // This does not work when the view changes
-                        }*/
-                        break;
+            } else if (left_arrow_button !== undefined && left_arrow_button.touches(left_arrow_pos(), mouse)) {
+                if (isIn(event.button, controls.press_button)) {
+                    if (level === "1") {
+                        return startLevel4();
+                    } else if (level === "2") {
+                        return startLevel1();
+                    } else if (level === "3") {
+                        return startLevel2();
+                    } else if (level === "4") {
+                        return startLevel3();
                     }
                 }
             }
         }
-        reset();
+        if (touching_nodes.length > 0) {
+            if (isIn(event.button, controls.edit_node)) {
+                editNode = nodes[touching_nodes[touching_nodes.length - 1]];
+                if (editNode.visible && editNode.editable) {
+                    oldEditNode = editNode.copy();
+                    editNode.text.setEditMode(true);
+                    const textPos = editNode.pos.plus(Node.textPadding);
+                    editNode.text.setCursorByPoint(textPos.x, textPos.y, offsettedMouse);
+                } else {
+                    editNode = undefined;
+                }
+            }
+        }
+        reset_dragging();
     }
 
     p5.keyPressed = (event) => {
@@ -303,8 +216,6 @@ let CONTROL = (exp) => {
             let edit = undefined;
             if (editNode !== undefined) {
                 edit = editNode.text;
-            } else if (editText !== undefined) {
-                edit = editText;
             }
             if (edit !== undefined) {
                 if (isIn(event.key, controls.delete_char)) {
@@ -312,7 +223,7 @@ let CONTROL = (exp) => {
                 } else if (isIn(event.key, controls.enter_edit)) {
                     edit.insertChar("\n");
                 } else if (isIn(event.key, controls.escape_edit)) {
-                    set_edit();
+                    complete_node_editing();
                 } else if (isIn(event.key, controls.cursor_left)) {
                     edit.moveCursor(-1);
                 } else if (isIn(event.key, controls.cursor_right)) {
@@ -332,6 +243,8 @@ let CONTROL = (exp) => {
     }
 
     function spawn_copy(original, copy) {
+        // spawns a copy of a node into the direction specificed by the spawn_vector attribute of the original node
+        // when the animation gets interrupted by a mouse move, the final copy is teleported to the final destination.
         const originalPos = unapplyView(copy.pos);
         const originalView = { ...view };
         const node = copy;
@@ -369,10 +282,11 @@ let CONTROL = (exp) => {
         animator.animate.push(ani);
     }
 
-    async function set_edit() {
-        if (editNode !== undefined) {
+    async function complete_node_editing() {
+        // Completes the editing of a node
+        if (editNode !== undefined && oldEditNode !== undefined) {
             if (!editNode.text.equals(oldEditNode.text)) {
-                editNode.text.setEdit(false);
+                editNode.text.setEditMode(false);
                 if (!editNode.mutable) {
                     const editNodeText = editNode.text;
                     editNode.text = oldEditNode.text;
@@ -421,23 +335,30 @@ let CONTROL = (exp) => {
                 }
             }
         }
-        if (editText !== undefined) {
-            editText.setEdit(false);
-        }
-        reset_edit();
+        reset_node_editing();
     }
 
-    function reset_edit() {
-        if (editNode !== undefined && oldEditNode !== undefined) {
-            editNode.text.setEdit(false);
-            oldEditNode.text.setEdit(false);
-            editNode.text = oldEditNode.text;
+    function reset_node_editing() {
+        if (editNode !== undefined) {
+            editNode.text.setEditMode(false);
+            if (oldEditNode !== undefined) {
+                editNode.text = oldEditNode.text;
+            }
         }
         editNode = undefined;
+        if (oldEditNode !== undefined) {
+            oldEditNode.text.setEditMode(false);
+        }
         oldEditNode = undefined;
     }
 
-    function reset_all() {
+    function reset_dragging() {
+        mouseOffset = Vec(0, 0);
+        draggedNode = undefined;
+        changeViewpoint = false;
+    }
+
+    function reset_level() {
         windowWidth = p5.windowWidth;
         windowHeight = p5.windowHeight;
         graph = new Graph();
@@ -445,29 +366,17 @@ let CONTROL = (exp) => {
         view.alpha = 255;
         view.viewpoint = Vec(0, 0);
         view.scale = 1;
-        reset_edit();
-        reset();
+        helpNodeSettings = { ...oldHelpNodeSettings };
+        reset_dragging();
+        reset_node_editing();
     }
 
-    function reset() {
-        draggedNode = undefined;
-        mouseOffset = Vec(0, 0);
-        node = undefined;
-        edge = undefined;
-        if (originalEdge !== undefined) {
-            originalEdge.visible = true;
-            originalEdge = undefined;
-        }
-        changeViewpoint = false;
-    }
-
-    p5.draw = () => {
+    function update() {
         if (windowWidth !== p5.windowWidth || windowHeight !== p5.windowHeight) {
             windowWidth = p5.windowWidth;
             windowHeight = p5.windowHeight;
             p5.resizeCanvas(p5.windowWidth, p5.windowHeight);
         }
-        p5.background(230, 230, 231);
 
         const mouse = Vec(p5.mouseX, p5.mouseY);
 
@@ -487,6 +396,22 @@ let CONTROL = (exp) => {
             }
         }
         animator.update();
+    }
+
+    function updateInput() {
+        const nextKeyChecks = [];
+        keyChecks.forEach(keyCheck => {
+            if (keyCheck()) {
+                nextKeyChecks.push(keyCheck);
+            }
+        })
+        keyChecks = nextKeyChecks;
+    }
+
+    p5.draw = () => {
+        p5.background(230, 230, 231);
+
+        update();
 
         p5.push();
         Mat.reset();
@@ -495,12 +420,6 @@ let CONTROL = (exp) => {
         p5.translate(-p5.windowWidth / 2, -p5.windowHeight / 2);
         p5.translate(view.viewpoint.x, view.viewpoint.y);
         graph.draw();
-        if (edge !== undefined) {
-            edge.draw();
-        }
-        if (edge !== undefined) {
-            edge.draw(true);
-        }
         if (editNode !== undefined) {
             editNode.draw();
         }
@@ -525,39 +444,37 @@ let CONTROL = (exp) => {
         if (left_arrow_button !== undefined) {
             left_arrow_button.draw(left_arrow_pos());
         }
+        if (helpNode !== undefined && help_button !== undefined && helpNodeSettings.visible) {
+            let pos = help_pos().minus(Vec(helpNode.width, helpNode.height));
+            helpNode.pos = pos.minus(helpNodeSettings.pos);
+            const oldAlpha = view.alpha;
+            view.alpha = helpNodeSettings.alpha;
+            helpNode.draw()
+            view.alpha = oldAlpha;
+        }
 
-        const nextKeyChecks = [];
-        keyChecks.forEach(keyCheck => {
-            if (keyCheck()) {
-                nextKeyChecks.push(keyCheck);
-            }
-        })
-        keyChecks = nextKeyChecks;
+        updateInput();
     }
 
     function startLevel1() {
-        reset_all();
+        reset_level();
         level = "1";
         const text = "Label: Sensor Driver\nVersion: 1.0.0\nData: 00110011110";
         const node = new Node(
             text,
-            applyView(Vec(windowWidth / 4, windowHeight / 4)),
-            Text.textSize * 2,
-            (Text.textSize + Node.textPadding.y * 2) / 2);
+            applyView(Vec(windowWidth / 4, windowHeight / 4)));
         node.mutable = false;
         node.main = node;
         graph.addNode(node);
     }
 
     function startLevel2() {
-        reset_all();
+        reset_level();
         level = "2";
         let text = "Sensor-Driver-1.0.0";
         const uuid = new Node(
             text,
-            applyView(Vec(windowWidth / 4, windowHeight / 4)),
-            Text.textSize * 2,
-            (Text.textSize + Node.textPadding.y * 2) / 2);
+            applyView(Vec(windowWidth / 4, windowHeight / 4)));
         uuid.main = uuid;
         graph.addNode(uuid);
 
@@ -577,14 +494,12 @@ let CONTROL = (exp) => {
     }
 
     function startLevel3Or4(lvl) {
-        reset_all();
+        reset_level();
         level = lvl;
         let text = UUID();
         const uuid = new Node(
             text,
-            applyView(Vec(windowWidth / 4, windowHeight / 4)),
-            Text.textSize * 2,
-            (Text.textSize + Node.textPadding.y * 2) / 2);
+            applyView(Vec(windowWidth / 4, windowHeight / 4)));
         uuid.main = uuid;
         graph.addNode(uuid);
 
@@ -610,9 +525,7 @@ let CONTROL = (exp) => {
         text = "Sensor Driver";
         const driver = new Node(
             text,
-            applyView(Vec(windowWidth / 4 - distance, windowHeight / 4 + distance)),
-            Text.textSize * 2,
-            (Text.textSize + Node.textPadding.y * 2) / 2);
+            applyView(Vec(windowWidth / 4 - distance, windowHeight / 4 + distance)));
         driver.main = uuid;
         driver.edgeText = LABEL;
         graph.addNode(driver);
@@ -623,9 +536,7 @@ let CONTROL = (exp) => {
         text = "1.0.0"
         const version = new Node(
             text,
-            applyView(Vec(windowWidth / 4 + distance, windowHeight / 4 + distance)),
-            Text.textSize * 2,
-            (Text.textSize + Node.textPadding.y * 2) / 2);
+            applyView(Vec(windowWidth / 4 + distance, windowHeight / 4 + distance)));
         version.main = uuid;
         version.edgeText = VERSION;
         graph.addNode(version);
@@ -679,5 +590,3 @@ let CONTROL = (exp) => {
 
     startLevel1();
 }
-
-export { CONTROL };

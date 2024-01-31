@@ -15,42 +15,50 @@ const GRAPH = (exp) => {
         static minHeight = (Text.textSize + Node.textPadding.y * 2);
         static rounding = 10;
         static strokeWeight = 3;
+        static selectedColor = COLORS["lightGrey"];
+        static mutableColor = COLORS["lightBlue"];
+        static immutableColor = COLORS["mediumOrange"];
 
-        constructor(text, pos, minWidth = Node.minWidth, minHeight = Node.minHeight) {
-            this.id = exp.id++;
-            this.main = undefined;
-            this.edgeText = undefined;
-            this.subs = [];
+        constructor(text, pos, color = undefined) {
             this.text = new Text(text);
-            this.width = 0;  // half width like radius
-            this.height = 0;  // half height like radius
-            this.minWidth = minWidth;
-            this.minHeight = minHeight;
             this.pos = pos;
-            this.mutable = true;
-            this.editable = true;
+            this.color = color;
+
+            this.id = exp.id++;
+            this.width = 0;
+            this.height = 0;
             this.visible = true;
             this.selected = false;
-            this.spawn_vector = Vec(1, 0.5);  // direction in which copied nodes spawn
+            this.editable = true;
             this.resize();
+
+            // attributes for spawning copies
+            this.mutable = true;
+            this.spawn_vector = Vec(1, 0.5);  // current direction in which copied nodes spawn
+            this.subs = [];
+            this.edgeText = undefined;
+            this.main = undefined;
         }
 
         copy() {
             const node = new Node();
-            node.id = this.id;
-            node.main = this.main;
-            node.edgeText = this.edgeText;
-            node.subs = this.subs.slice();
             node.text = this.text.copy();
+            node.pos = this.pos;
+            node.color = this.color;
+
+            node.id = this.id;
             node.width = this.width;
             node.height = this.height;
-            node.minWidth = this.minWidth;
-            node.minHeight = this.minHeight;
-            node.pos = this.pos;
-            node.mutable = this.mutable;
-            node.editable = this.editable;
             node.visible = true;
             node.selected = false;
+            node.editable = this.editable;
+            node.resize();
+
+            node.mutable = this.mutable;
+            node.spawn_vector = this.spawn_vector;
+            node.subs = this.subs.slice;
+            node.edgeText = this.edgeText;
+            node.main = this.main;
             return node;
         }
 
@@ -58,18 +66,18 @@ const GRAPH = (exp) => {
             point = applyView(point);
             const p1 = this.pos;
             const p2 = this.pos.plus(Vec(this.width, 0));
-            const p3 = this.pos.plus(Vec(this.width, this.height));
-            const p4 = this.pos.plus(Vec(0, this.height));
+            const p3 = this.pos.plus(Vec(0, this.height));
+            const p4 = this.pos.plus(Vec(this.width, this.height));
             const res = TwoD.pointIntersectRect(point, p1, p2, p3, p4);
             return res;
         }
 
         resize() {
             let size = this.text.getSize();
-            size = { x: size.x + Node.textPadding.x * 2, y: size.y + Node.textPadding.y * 2}
+            size = { x: size.x + Node.textPadding.x * 2, y: size.y + Node.textPadding.y * 2 }
             if (this.width != size.x || this.height != size.y) {
-                this.width = Math.max(this.minWidth, size.x);
-                this.height = Math.max(this.minHeight, size.y);
+                this.width = Math.max(Node.minWidth, size.x);
+                this.height = Math.max(Node.minHeight, size.y);
             }
         }
 
@@ -78,18 +86,22 @@ const GRAPH = (exp) => {
                 return;
             }
             this.resize();
-            if (this.selected) {
-                p5.stroke(applyAlpha(COLORS["lightGrey"]));
-            } else {
+            if (this.color !== undefined) {
                 p5.noStroke();
-            }
-            if (!this.mutable) {
-                p5.fill(applyAlpha(COLORS["lightBlue"]));
+                p5.fill(applyAlpha(this.color));
             } else {
-                p5.fill(applyAlpha(COLORS["mediumOrange"]));
+                if (this.selected) {
+                    p5.stroke(applyAlpha(Node.selectedColor));
+                    p5.strokeWeight(Node.strokeWeight);
+                } else {
+                    p5.noStroke();
+                }
+                if (!this.mutable) {
+                    p5.fill(applyAlpha(Node.mutableColor));
+                } else {
+                    p5.fill(applyAlpha(Node.immutableColor));
+                }
             }
-
-            p5.strokeWeight(Node.strokeWeight);
             p5.rect(this.pos.x, this.pos.y, this.width, this.height, Node.rounding);
 
             const offset = this.pos.plus(Node.textPadding);
@@ -106,20 +118,22 @@ const GRAPH = (exp) => {
         static triangle_width = 15;
         static separator = new Text(", ");
         constructor(text, start, end) {
-            this.id = exp.id++;
-            this.texts = [new Text(text, false)];
+            this.texts = [new Text(text, false)]; // Other than nodes, edges can hold multiple texts
             this.start = start;
             this.end = end;
+
+            this.id = exp.id++;
             this.visible = true;
             this.selected = false;
         }
 
         copy() {
             const edge = new Edge();
-            edge.id = this.id;
             edge.texts = this.texts.map(text => text.copy());
             edge.start = this.start;
             edge.end = this.end;
+
+            edge.id = this.id;
             edge.visible = true;
             edge.selected = false;
             return edge;
@@ -159,29 +173,8 @@ const GRAPH = (exp) => {
             return { start: start, end: end, distance: end.minus(start).distance() };
         }
 
-        touches(point) {
-            point = applyView(point);
-            const { start: startBorder, end: endBorder, distance: distance } = this.getBorderPoints();
-            if (distance <= 0) {
-                return false;
-            }
-
-            const diff = endBorder.minus(startBorder);
-            const orthodiff = diff.orthogonal().normalized();
-
-            let p1 = undefined;
-            let p2 = undefined;
-            let p3 = undefined;
-            let p4 = undefined;
-            p1 = startBorder.plus(orthodiff.times(Edge.touchWidth / 2));
-            p2 = startBorder.plus(orthodiff.times(-Edge.touchWidth / 2));
-            p3 = endBorder.plus(orthodiff.times(Edge.touchWidth / 2));
-            p4 = endBorder.plus(orthodiff.times(-Edge.touchWidth / 2));
-
-            return TwoD.pointIntersectRect(point, p1, p2, p3, p4);
-        }
-
         touches_text(point) {
+            // Not used rightnow but helpful for editing/deleting edge texts
             point = applyView(point);
             const { start: startBorder, end: endBorder, distance: distance } = this.getBorderPoints();
             if (distance <= 0) {
@@ -220,9 +213,9 @@ const GRAPH = (exp) => {
                     start.x,
                     vec.y,
                     start.x + vec.x,
-                    vec.y,
+                    0,
                     start.x + vec.x,
-                    0];
+                    vec.y];
                 points = Mat.applyToArray(points);
                 if (TwoD.pointIntersectRect(point, Vec(points[0], points[1]), Vec(points[2], points[3]),
                     Vec(points[4], points[5]), Vec(points[6], points[7]))) {
@@ -360,6 +353,7 @@ const GRAPH = (exp) => {
         }
 
         findConnectedEdges(node) {
+            // returns the edges of which a node is the start or end node
             const startEdges = [];
             const endEdges = [];
             for (let i = 0; i < this.edges.length; i++) {
@@ -374,6 +368,7 @@ const GRAPH = (exp) => {
         }
 
         deleteNode(node) {
+            // Not used right now but useful for deleting nodes
             const nodes = [];
             const edges = [];
             for (let i = 0; i < this.nodes.length; i++) {
@@ -412,6 +407,7 @@ const GRAPH = (exp) => {
         }
 
         deleteEdge(edge) {
+            // Not used right now but useful for deleting whole edges
             const edges = [];
             for (let i = 0; i < this.edges.length; i++) {
                 if (edge.id !== this.edges[i].id) {
@@ -423,5 +419,3 @@ const GRAPH = (exp) => {
     }
     exp.Graph = Graph;
 }
-
-export { GRAPH };
