@@ -7,7 +7,6 @@ const GRAPH = (exp) => {
     const view = exp.view;
     const applyView = exp.applyView;
     const Text = exp.Text;
-    const Mat = exp.Mat;
 
     class Node {
         static textPadding = Vec(15, 16);
@@ -56,7 +55,7 @@ const GRAPH = (exp) => {
 
             node.mutable = this.mutable;
             node.spawn_vector = this.spawn_vector;
-            node.subs = this.subs.slice;
+            node.subs = this.subs.slice();
             node.edgeText = this.edgeText;
             node.main = this.main;
             return node;
@@ -173,61 +172,6 @@ const GRAPH = (exp) => {
             return { start: start, end: end, distance: end.minus(start).distance() };
         }
 
-        touches_text(point) {
-            // Not used rightnow but helpful for editing/deleting edge texts
-            point = applyView(point);
-            const { start: startBorder, end: endBorder, distance: distance } = this.getBorderPoints();
-            if (distance <= 0) {
-                return;
-            }
-            const diff = endBorder.minus(startBorder);
-            let textSizes = { x: 0, y: 0 };
-            for (let i = 0; i < this.texts.length; i++) {
-                const sizes = this.texts[i].getSize();
-                textSizes.x += sizes.x;
-                textSizes.y = sizes.y;
-            }
-            textSizes.x += Edge.separator.getSize().x * Math.max(0, this.texts.length - 1);
-
-            const mid = startBorder.plus(diff.times(0.5));
-            const angle = diff.times(-1).angle(Vec(1, 0));
-            Mat.reset();
-            Mat.translate(mid.x, mid.y);
-            Mat.rotate(-angle)
-            if (-diff.x < 0) {
-                Mat.scaleX(-1);
-                Mat.scaleY(-1);
-            }
-            let y = textSizes.y / 3;
-            y = startBorder.x < endBorder.x ? - 4 * y : y;
-            Mat.translate(-textSizes.x / 2, y);
-            const invMat = Mat.getInverse();
-            p5.noStroke();
-            let start = { x: 0, y: 0 };
-            for (let i = 0; i < this.texts.length; i++) {
-                const offset = this.texts[i].getSize(start.x, 0, false);
-                const vec = Vec(offset.x, offset.y).minus(Vec(start.x, 0));
-                let points = [
-                    start.x,
-                    0,
-                    start.x,
-                    vec.y,
-                    start.x + vec.x,
-                    0,
-                    start.x + vec.x,
-                    vec.y];
-                points = Mat.applyToArray(points);
-                if (TwoD.pointIntersectRect(point, Vec(points[0], points[1]), Vec(points[2], points[3]),
-                    Vec(points[4], points[5]), Vec(points[6], points[7]))) {
-                    return i;
-                }
-                if (this.texts.length > 1 && i + 1 !== this.texts.length) {
-                    start = Edge.separator.getSize(offset.x, 0, false);
-                }
-            }
-            return;
-        }
-
         draw(head = false) {
             if (!this.visible) {
                 return;
@@ -272,18 +216,14 @@ const GRAPH = (exp) => {
             const mid = startBorder.plus(diff.times(0.5));
             const angle = diff.times(-1).angle(Vec(1, 0));
             p5.push()
-            Mat.reset();
             p5.translate(mid.x, mid.y);
-            Mat.translate(mid.x, mid.y);
             p5.rotate(-angle);
-            Mat.rotate(-angle)
             if (-diff.x < 0) {
                 p5.scale(-1);
             }
             let y = textSizes.y / 3;
             y = startBorder.x < endBorder.x ? - 4 * y : y;
             p5.translate(-textSizes.x / 2, y);
-            Mat.translate(-textSizes.x / 2, y);
 
             let offset = { x: 0, y: 0, rows: 0 };
             for (let i = 0; i < this.texts.length; i++) {

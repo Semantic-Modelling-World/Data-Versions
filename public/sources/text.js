@@ -245,11 +245,11 @@ const TEXT = (exp) => {
 
         draw(x, y, vertical = p5.LEFT, horizontal = p5.TOP) {
             p5.noStroke();
-            if (this.selected) {
+            /*if (this.selected) {  // for highlighting selected text
                 const size = this.getSize();
                 p5.fill(applyAlpha(COLORS["lightGrey"]));
                 p5.rect(x, y, size.x, size.y, 5);
-            }
+            }*/
             p5.noStroke();
             p5.textSize(this.textSize);
             p5.textAlign(vertical, horizontal);

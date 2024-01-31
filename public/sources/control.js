@@ -13,7 +13,6 @@ let CONTROL = (exp) => {
     const Animation = exp.Animation;
     const animator = exp.animator;
     const canvas = exp.canvas;
-    const Mat = exp.Mat;
     const view = exp.view;
     const applyView = exp.applyView;
     const unapplyView = exp.unapplyView;
@@ -87,7 +86,7 @@ let CONTROL = (exp) => {
             const textPos = editNode.pos.plus(Node.textPadding);
             editNode.text.setCursorByPoint(textPos.x, textPos.y, mouse);
             return;
-    }
+        }
         complete_node_editing();
 
         if ((reset_button !== undefined && reset_button.touches(reset_pos(), mouse)) ||
@@ -135,7 +134,7 @@ let CONTROL = (exp) => {
     }
 
     p5.mouseReleased = (event) => {
-        reset_dragging();
+        abort_dragging();
         const mouse = Vec(p5.mouseX, p5.mouseY);
         if (draggedNode === undefined) {
             if (reset_button !== undefined && reset_button.touches(reset_pos(), mouse)) {
@@ -151,7 +150,9 @@ let CONTROL = (exp) => {
                     }
                 }
             } else if (help_button !== undefined && help_button.touches(help_pos(), mouse)) {
-                helpNodeSettings.visible = !helpNodeSettings.visible;
+                if (isIn(event.button, controls.press_button)) {
+                    helpNodeSettings.visible = !helpNodeSettings.visible;
+                }
             } else if (right_arrow_button !== undefined && right_arrow_button.touches(right_arrow_pos(), mouse)) {
                 if (isIn(event.button, controls.press_button)) {
                     if (level === "1") {
@@ -274,7 +275,6 @@ let CONTROL = (exp) => {
         // Completes the editing of a node, by spawning the node as a copy of the old version of the node
         if (editNode !== undefined && oldEditNode !== undefined) {
             if (!editNode.text.equals(oldEditNode.text)) {
-                editNode.text.setEditMode(false);
                 if (!editNode.mutable) {
                     const editNodeText = editNode.text;
                     editNode.text = oldEditNode.text;
@@ -323,10 +323,17 @@ let CONTROL = (exp) => {
                 }
             }
         }
-        reset_node_editing();
+        if (editNode !== undefined) {
+            editNode.text.setEditMode(false);
+            editNode = undefined;
+        }
+        if (oldEditNode !== undefined) {
+            oldEditNode.text.setEditMode(false);
+            oldEditNode = undefined;
+        }
     }
 
-    function reset_node_editing() {
+    function abort_node_editing() {
         if (editNode !== undefined) {
             editNode.text.setEditMode(false);
             if (oldEditNode !== undefined) {
@@ -340,7 +347,7 @@ let CONTROL = (exp) => {
         oldEditNode = undefined;
     }
 
-    function reset_dragging() {
+    function abort_dragging() {
         mouseOffset = Vec(0, 0);
         draggedNode = undefined;
         changeViewpoint = false;
@@ -355,8 +362,8 @@ let CONTROL = (exp) => {
         view.viewpoint = Vec(0, 0);
         view.scale = 1;
         helpNodeSettings = { ...oldHelpNodeSettings };
-        reset_dragging();
-        reset_node_editing();
+        abort_dragging();
+        abort_node_editing();
     }
 
     function update() {
@@ -371,17 +378,6 @@ let CONTROL = (exp) => {
         for (let i = 0; i < graph.nodes.length; i++) {
             const node = graph.nodes[i];
             node.selected = node.visible && node.touches(mouse);
-        }
-
-        for (let i = 0; i < graph.edges.length; i++) {
-            const edge = graph.edges[i];
-            for (let i = 0; i < edge.texts.length; i++) {
-                edge.texts[i].selected = false;
-            }
-            const textIndex = edge.touches_text(mouse);
-            if (edge.visible && textIndex !== undefined) {
-                edge.texts[textIndex].selected = true;
-            }
         }
         animator.update();
     }
@@ -402,7 +398,6 @@ let CONTROL = (exp) => {
         update();
 
         p5.push();
-        Mat.reset();
         p5.translate(p5.windowWidth / 2, p5.windowHeight / 2);
         p5.scale(view.scale);
         p5.translate(-p5.windowWidth / 2, -p5.windowHeight / 2);
@@ -411,7 +406,6 @@ let CONTROL = (exp) => {
         if (editNode !== undefined) {
             editNode.draw();
         }
-        Mat.reset();
         p5.pop();
 
         p5.textAlign(p5.RIGHT, p5.TOP);
@@ -462,15 +456,15 @@ let CONTROL = (exp) => {
         let text = "Sensor-Driver-1.0.0";
         const uuid = new Node(
             text,
-            applyView(Vec(windowWidth / 4, windowHeight / 4)));
+            applyView(Vec(p5.windowWidth / 4, p5.windowHeight / 4)));
         uuid.main = uuid;
         graph.addNode(uuid);
 
         text = "00110011110";
         let distance = Node.minHeight + uuid.height + Text.getWidth(BELONGSTO) * 2;
         const data = new Node(
-            text,
-            applyView(Vec(windowWidth / 4, windowHeight / 4 + distance)));
+            text);
+        data.pos = Vec(uuid.pos.x + uuid.width / 2 - data.width / 2, uuid.pos.y + distance)
         data.main = uuid;
         data.mutable = false;
         data.edgeText = BELONGSTO;
@@ -489,6 +483,10 @@ let CONTROL = (exp) => {
             text,
             applyView(Vec(windowWidth / 4, windowHeight / 4)));
         uuid.main = uuid;
+        if (lvl === "4") {
+            uuid.mutable = false;
+            uuid.editable = false;
+        }
         graph.addNode(uuid);
 
         text = "00110011110";
@@ -571,7 +569,7 @@ let CONTROL = (exp) => {
             };
         });
         p5.loadImage('assets/question.png', img => {
-            help_button = new CircleButton(img, 1 / 2.75, 0, 17);
+            help_button = new CircleButton(img, 1 / 2.75, 0, 20);
             help_pos = () => Vec(p5.windowWidth - help_button.size.x - levelTextPadding.x + 10, p5.windowHeight - help_button.size.y - levelTextPadding.y + 10);
         });
     }
