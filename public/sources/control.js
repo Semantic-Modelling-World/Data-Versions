@@ -84,9 +84,12 @@ let CONTROL = (exp) => {
         const nodes = graph.nodes;
         const touching_nodes = graph.touches_nodes(mouse);
         if (isIn(event.button, controls.edit_node) && editNode !== undefined && editNode.touches(mouse)) {
+            const textPos = editNode.pos.plus(Node.textPadding);
+            editNode.text.setCursorByPoint(textPos.x, textPos.y, mouse);
             return;
-        }
+    }
         complete_node_editing();
+
         if ((reset_button !== undefined && reset_button.touches(reset_pos(), mouse)) ||
             (right_arrow_button !== undefined && right_arrow_button.touches(right_arrow_pos(), mouse)) ||
             (left_arrow_button !== undefined && left_arrow_button.touches(left_arrow_pos(), mouse)) ||
@@ -96,6 +99,16 @@ let CONTROL = (exp) => {
                 draggedNode = nodes[touching_nodes[touching_nodes.length - 1]];
                 mouseOffset = unapplyView(draggedNode.pos).minus(mouse);
                 animator.cancel(draggedNode);
+            } else if (isIn(event.button, controls.edit_node)) {
+                editNode = nodes[touching_nodes[touching_nodes.length - 1]];
+                if (editNode.visible && editNode.editable) {
+                    oldEditNode = editNode.copy();
+                    editNode.text.setEditMode(true);
+                    const textPos = editNode.pos.plus(Node.textPadding);
+                    editNode.text.setCursorByPoint(textPos.x, textPos.y, mouse);
+                } else {
+                    editNode = undefined;
+                }
             }
         } else {
             if (isIn(event.button, controls.move_graph)) {
@@ -122,19 +135,8 @@ let CONTROL = (exp) => {
     }
 
     p5.mouseReleased = (event) => {
+        reset_dragging();
         const mouse = Vec(p5.mouseX, p5.mouseY);
-        const offsettedMouse = mouse.plus(mouseOffset)
-        const nodes = graph.nodes;
-        const touching_nodes = graph.touches_nodes(offsettedMouse);
-
-        if (isIn(event.button, controls.edit_node) && editNode !== undefined && editNode.touches(mouse)) {
-            const textPos = editNode.pos.plus(Node.textPadding);
-            editNode.text.setCursorByPoint(textPos.x, textPos.y, offsettedMouse);
-            reset_dragging();
-            return;
-        }
-        complete_node_editing();
-
         if (draggedNode === undefined) {
             if (reset_button !== undefined && reset_button.touches(reset_pos(), mouse)) {
                 if (isIn(event.button, controls.press_button)) {
@@ -176,20 +178,6 @@ let CONTROL = (exp) => {
                 }
             }
         }
-        if (touching_nodes.length > 0) {
-            if (isIn(event.button, controls.edit_node)) {
-                editNode = nodes[touching_nodes[touching_nodes.length - 1]];
-                if (editNode.visible && editNode.editable) {
-                    oldEditNode = editNode.copy();
-                    editNode.text.setEditMode(true);
-                    const textPos = editNode.pos.plus(Node.textPadding);
-                    editNode.text.setCursorByPoint(textPos.x, textPos.y, offsettedMouse);
-                } else {
-                    editNode = undefined;
-                }
-            }
-        }
-        reset_dragging();
     }
 
     p5.keyPressed = (event) => {
@@ -283,7 +271,7 @@ let CONTROL = (exp) => {
     }
 
     async function complete_node_editing() {
-        // Completes the editing of a node
+        // Completes the editing of a node, by spawning the node as a copy of the old version of the node
         if (editNode !== undefined && oldEditNode !== undefined) {
             if (!editNode.text.equals(oldEditNode.text)) {
                 editNode.text.setEditMode(false);
